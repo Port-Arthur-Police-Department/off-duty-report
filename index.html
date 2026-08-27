@@ -139,6 +139,20 @@
     font-family:inherit;
     background:transparent;
   }
+  tbody td select.type-select{
+    width:100%;
+    height:100%;
+    border:none;
+    outline:none;
+    font-size:12.5px;
+    padding:0 4px;
+    font-family:inherit;
+    background:transparent;
+    color:var(--ink);
+    cursor:pointer;
+  }
+  tbody td select.type-select:focus{background:#fbfcfe;}
+  tbody td select.type-select option.placeholder{color:var(--muted);}
   .date-cell{
     position:relative;
     display:flex;
@@ -154,16 +168,25 @@
     padding:0 24px 0 6px;
     font-family:inherit;
     background:transparent;
-    cursor:pointer;
     color:var(--ink);
+    pointer-events:none;
   }
   input.date-display::placeholder{color:var(--muted);}
   input.date-native{
     position:absolute;
+    inset:0;
+    width:100%;
+    height:100%;
+    margin:0;
+    padding:0 24px 0 6px;
+    border:none;
+    background:transparent;
     opacity:0;
-    width:1px;
-    height:1px;
-    pointer-events:none;
+    cursor:pointer;
+    z-index:2;
+    font-size:12.5px;
+    font-family:inherit;
+    color-scheme:light;
   }
   .date-icon{
     position:absolute;
@@ -174,11 +197,11 @@
     background:none;
     padding:0;
     font-size:12px;
-    cursor:pointer;
     color:var(--muted);
     line-height:1;
+    pointer-events:none;
+    z-index:1;
   }
-  .date-icon:hover{color:var(--accent);}
   tbody td input:focus{background:#fbfcfe;}
   tbody tr:hover td{background:#fafbfc;}
   .row-del{
@@ -394,12 +417,19 @@ function makeRow(){
   const tr = document.createElement('tr');
   tr.innerHTML = `
     <td class="date-cell">
-      <input type="text" class="date-display" placeholder="--/--/--" readonly>
-      <input type="date" class="date-native" tabindex="-1">
-      <button type="button" class="date-icon" title="Pick date">&#128197;</button>
+      <input type="text" class="date-display" placeholder="--/--/--" readonly tabindex="-1">
+      <button type="button" class="date-icon" tabindex="-1">&#128197;</button>
+      <input type="date" class="date-native" aria-label="Date worked">
     </td>
     <td><input type="text" placeholder=""></td>
-    <td><input type="text" placeholder=""></td>
+    <td>
+      <select class="type-select">
+        <option value="" class="placeholder">Select...</option>
+        <option value="Traffic">Traffic</option>
+        <option value="Security">Security</option>
+        <option value="Other">Other</option>
+      </select>
+    </td>
     <td class="time-cell">
       <select class="time-start">${TIME_OPTIONS_HTML}</select>
       <span class="time-sep">–</span>
@@ -411,17 +441,7 @@ function makeRow(){
 
   const dateDisplay = tr.querySelector('.date-display');
   const dateNative = tr.querySelector('.date-native');
-  const dateIcon = tr.querySelector('.date-icon');
 
-  function openPicker(){
-    if(typeof dateNative.showPicker === 'function'){
-      try{ dateNative.showPicker(); return; }catch(e){}
-    }
-    dateNative.focus();
-    dateNative.click();
-  }
-  dateDisplay.addEventListener('click', openPicker);
-  dateIcon.addEventListener('click', openPicker);
   dateNative.addEventListener('change', ()=>{
     dateDisplay.value = dateNative.value ? formatDateShort(dateNative.value) : '';
   });
