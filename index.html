@@ -454,7 +454,7 @@ function makeRow(){
   const tr = document.createElement('tr');
   tr.innerHTML = `
     <td class="date-cell">
-      <input type="text" class="date-display" placeholder="--/--/--" readonly tabindex="-1">
+      <input type="text" class="date-display" placeholder=" " readonly tabindex="-1">
       <input type="date" class="date-native" aria-label="Date worked">
     </td>
     <td><input type="text" class="day-input" placeholder="--" readonly tabindex="-1"></td>
@@ -553,7 +553,7 @@ function addPage(){
       <div class="info-cell">
         <label>Rank:</label>
         <select class="info-select">
-          <option value="">Select...</option>
+          <option value=""> </option>
           <option value="Officer">Officer</option>
           <option value="Sergeant">Sergeant</option>
           <option value="Lieutenant">Lieutenant</option>
