@@ -863,142 +863,120 @@ document.getElementById('fileInput').addEventListener('change', (e)=>{
 });
 
 // ============================================
-//  PDF EXPORT - FIXED
+//  PDF EXPORT - SIMPLIFIED & RELIABLE
 // ============================================
 
-function prepExportOverlays(sheet) {
-  const entries = [];
+async function captureSheetForPDF(sheet, index, totalPages) {
+  // Hide interactive elements
+  const controls = sheet.querySelectorAll('.row-del, .table-actions, .sig-controls button');
+  controls.forEach(el => el.style.display = 'none');
   
-  sheet.querySelectorAll('input, select').forEach(el => {
-    const rect = el.getBoundingClientRect();
-    if (rect.width === 0 || rect.height === 0) return;
-    
-    const parent = el.parentElement;
-    const parentPos = window.getComputedStyle(parent).position;
-    let resetPos = false;
-    if (parentPos === 'static') { 
-      parent.style.position = 'relative'; 
-      resetPos = true; 
+  // Make sure all select values are visible
+  const selects = sheet.querySelectorAll('select');
+  selects.forEach(sel => {
+    // Add a data attribute to remember original state
+    sel.dataset.originalValue = sel.value;
+    // For select elements, we need to make the selected text visible
+    // by adding a span with the text
+    const selectedText = sel.options[sel.selectedIndex]?.text || '';
+    if (selectedText && !sel.dataset.hasOverlay) {
+      const overlay = document.createElement('span');
+      overlay.className = 'pdf-select-overlay';
+      overlay.textContent = selectedText;
+      overlay.style.cssText = `
+        position: absolute;
+        left: 4px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: ${window.getComputedStyle(sel).fontSize};
+        font-family: ${window.getComputedStyle(sel).fontFamily};
+        color: #1a1d21;
+        pointer-events: none;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: calc(100% - 8px);
+      `;
+      sel.parentElement.style.position = 'relative';
+      sel.parentElement.appendChild(overlay);
+      sel.dataset.hasOverlay = 'true';
     }
-
-    const div = document.createElement('div');
-    
-    if (el.tagName === 'SELECT') {
-      const text = el.selectedIndex >= 0 ? el.options[el.selectedIndex].text : '';
-      div.textContent = text;
-      div.style.color = el.value === '' ? '#6b7280' : '#1a1d21';
-    } else {
-      div.textContent = el.value || '';
-      div.style.color = '#1a1d21';
-    }
-    
-    const cs = window.getComputedStyle(el);
-    div.style.position = 'absolute';
-    div.style.inset = '0';
-    div.style.display = 'flex';
-    div.style.alignItems = 'center';
-    div.style.justifyContent = el.classList.contains('hrs-input') ? 'center' : 'flex-start';
-    div.style.font = cs.font;
-    div.style.fontSize = cs.fontSize;
-    div.style.fontWeight = cs.fontWeight;
-    div.style.letterSpacing = cs.letterSpacing;
-    div.style.padding = cs.padding;
-    div.style.background = 'transparent';
-    div.style.whiteSpace = 'nowrap';
-    div.style.overflow = 'hidden';
-    div.style.textOverflow = 'ellipsis';
-    div.style.pointerEvents = 'none';
-    div.style.boxSizing = 'border-box';
-    div.style.width = '100%';
-    div.style.height = '100%';
-    
-    el.style.visibility = 'hidden';
-    parent.appendChild(div);
-    
-    entries.push({ div, el, parent, resetPos });
   });
 
-  // Also handle date display
-  sheet.querySelectorAll('.date-display').forEach(el => {
-    const parent = el.parentElement;
-    const parentPos = window.getComputedStyle(parent).position;
-    let resetPos = false;
-    if (parentPos === 'static') { 
-      parent.style.position = 'relative'; 
-      resetPos = true; 
+  // Ensure date display shows value
+  const dateDisplays = sheet.querySelectorAll('.date-display');
+  dateDisplays.forEach(d => {
+    if (d.value) {
+      d.style.color = '#1a1d21';
     }
-    
-    const div = document.createElement('div');
-    div.textContent = el.value || '';
-    const cs = window.getComputedStyle(el);
-    div.style.position = 'absolute';
-    div.style.inset = '0';
-    div.style.display = 'flex';
-    div.style.alignItems = 'center';
-    div.style.justifyContent = 'flex-start';
-    div.style.font = cs.font;
-    div.style.fontSize = cs.fontSize;
-    div.style.padding = cs.padding;
-    div.style.background = 'transparent';
-    div.style.whiteSpace = 'nowrap';
-    div.style.overflow = 'hidden';
-    div.style.textOverflow = 'ellipsis';
-    div.style.pointerEvents = 'none';
-    div.style.boxSizing = 'border-box';
-    div.style.width = '100%';
-    div.style.height = '100%';
-    div.style.color = '#1a1d21';
-    
-    el.style.visibility = 'hidden';
-    parent.appendChild(div);
-    entries.push({ div, el, parent, resetPos });
   });
 
-  return entries;
-}
+  // Wait for any layout changes
+  await new Promise(resolve => setTimeout(resolve, 50));
 
-function restoreExportOverlays(entries) {
-  entries.forEach(({div, el, parent, resetPos}) => {
-    div.remove();
-    el.style.visibility = '';
-    if(resetPos) parent.style.position = '';
+  // Capture with html2canvas
+  const canvas = await html2canvas(sheet, {
+    scale: 2,
+    backgroundColor: '#ffffff',
+    useCORS: true,
+    logging: false,
+    windowWidth: sheet.scrollWidth,
+    windowHeight: sheet.scrollHeight
   });
+
+  // Clean up overlays
+  const overlays = sheet.querySelectorAll('.pdf-select-overlay');
+  overlays.forEach(el => el.remove());
+  selects.forEach(sel => {
+    delete sel.dataset.hasOverlay;
+  });
+  
+  // Show interactive elements again
+  controls.forEach(el => el.style.display = '');
+
+  return canvas;
 }
 
 document.getElementById('exportBtn').addEventListener('click', async ()=>{
   const btn = document.getElementById('exportBtn');
   const origText = btn.textContent;
-  btn.textContent = 'Generating PDF...';
+  btn.textContent = '⏳ Generating PDF...';
   btn.disabled = true;
 
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF('p', 'pt', 'letter');
-  const sheets = [...document.querySelectorAll('.sheet')];
+  try {
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'pt', 'letter');
+    const sheets = [...document.querySelectorAll('.sheet')];
 
-  for(let i=0;i<sheets.length;i++){
-    const sheet = sheets[i];
-    const controls = sheet.querySelectorAll('.row-del,.table-actions,.sig-controls');
-    controls.forEach(c=>c.style.visibility='hidden');
-    const entries = prepExportOverlays(sheet);
+    for (let i = 0; i < sheets.length; i++) {
+      const canvas = await captureSheetForPDF(sheets[i], i, sheets.length);
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pageW = pdf.internal.pageSize.getWidth();
+      const pageH = pdf.internal.pageSize.getHeight();
+      
+      // Calculate dimensions to fit the page with margins
+      const margin = 40;
+      const maxW = pageW - (margin * 2);
+      const maxH = pageH - (margin * 2);
+      
+      const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
+      const w = canvas.width * ratio;
+      const h = canvas.height * ratio;
+      
+      if (i > 0) pdf.addPage();
+      pdf.addImage(imgData, 'PNG', (pageW - w) / 2, margin, w, h);
+    }
 
-    const canvas = await html2canvas(sheet, {scale:2, backgroundColor:'#ffffff'});
-
-    restoreExportOverlays(entries);
-    controls.forEach(c=>c.style.visibility='');
-
-    const imgData = canvas.toDataURL('image/png');
-    const pageW = pdf.internal.pageSize.getWidth();
-    const pageH = pdf.internal.pageSize.getHeight();
-    const ratio = Math.min(pageW / canvas.width, pageH / canvas.height);
-    const w = canvas.width * ratio;
-    const h = canvas.height * ratio;
-    if(i>0) pdf.addPage();
-    pdf.addImage(imgData, 'PNG', (pageW-w)/2, 20, w, h - 20);
+    pdf.save('Secondary_Employment_Report.pdf');
+    alert('✅ PDF exported successfully!');
+  } catch (error) {
+    console.error('PDF export error:', error);
+    alert('❌ Failed to export PDF: ' + error.message);
+  } finally {
+    btn.textContent = origText;
+    btn.disabled = false;
   }
-
-  pdf.save('Secondary_Employment_Report.pdf');
-  btn.textContent = origText;
-  btn.disabled = false;
 });
 
 // ---- START ----
