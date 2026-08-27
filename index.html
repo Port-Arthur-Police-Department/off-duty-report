@@ -193,7 +193,7 @@
       border:none;
       outline:none;
       font-size:12.5px;
-      padding:0 24px 0 6px;
+      padding:0 6px;
       font-family:inherit;
       background:transparent;
       color:var(--ink);
@@ -206,7 +206,7 @@
       width:100%;
       height:100%;
       margin:0;
-      padding:0 24px 0 6px;
+      padding:0 6px;
       border:none;
       background:transparent;
       opacity:0;
@@ -215,20 +215,6 @@
       font-size:12.5px;
       font-family:inherit;
       color-scheme:light;
-    }
-    .date-icon{
-      position:absolute;
-      right:4px;
-      top:50%;
-      transform:translateY(-50%);
-      border:none;
-      background:none;
-      padding:0;
-      font-size:12px;
-      color:var(--muted);
-      line-height:1;
-      pointer-events:none;
-      z-index:1;
     }
     tbody td input:focus{background:#fbfcfe;}
     tbody tr:hover td{background:#fafbfc;}
@@ -350,7 +336,9 @@
       color:var(--muted);
     }
 
-    @media print{
+    /* ===== PRINT & PDF-EXPORT STYLES ===== */
+    @media print,
+           .pdf-mode {
       body{background:#fff;padding:0;}
       .toolbar{display:none;}
       .sheet{
@@ -393,7 +381,6 @@
   <div class="toolbar-title">Secondary Employment Report — Digital</div>
   <div class="btn-group">
     <button class="btn-secondary" id="addPageBtn">+ Add Page (20 rows)</button>
-    <button class="btn-secondary" id="printBtn">Print</button>
     <button class="btn-primary" id="exportBtn">Export as PDF</button>
     <button class="btn-secondary" id="saveBtn">💾 Save Progress</button>
     <button class="btn-secondary" id="loadBtn">📂 Load Progress</button>
@@ -410,7 +397,7 @@
 
 <script>
 // ============================================
-//  CONFIGURATION – Reduced to 20 rows per page
+//  CONFIGURATION – 20 rows per page
 // ============================================
 const ROWS_PER_PAGE = 20;
 
@@ -468,7 +455,6 @@ function makeRow(){
   tr.innerHTML = `
     <td class="date-cell">
       <input type="text" class="date-display" placeholder="--/--/--" readonly tabindex="-1">
-      <button type="button" class="date-icon" tabindex="-1">&#128197;</button>
       <input type="date" class="date-native" aria-label="Date worked">
     </td>
     <td><input type="text" class="day-input" placeholder="--" readonly tabindex="-1"></td>
@@ -881,7 +867,6 @@ function attachAutoSave() {
 // ============================================
 
 document.getElementById('addPageBtn').addEventListener('click', addPage);
-document.getElementById('printBtn').addEventListener('click', ()=> window.print());
 document.getElementById('clearBtn').addEventListener('click', clearAll);
 
 document.getElementById('saveBtn').addEventListener('click', ()=>{
@@ -901,7 +886,7 @@ document.getElementById('fileInput').addEventListener('change', (e)=>{
 });
 
 // ============================================
-//  PDF EXPORT – FULL PAGE
+//  PDF EXPORT – Uses print styles
 // ============================================
 
 function createPDFOverlay(element) {
@@ -951,7 +936,7 @@ function createPDFOverlay(element) {
     overlay.style.padding = '4px 2px';
   }
   if (element.classList.contains('date-display')) {
-    overlay.style.paddingRight = '24px';
+    overlay.style.paddingRight = '6px';
   }
   if (element.classList.contains('hrs-input') || element.classList.contains('day-input')) {
     overlay.style.justifyContent = 'center';
@@ -985,19 +970,19 @@ function createPDFOverlay(element) {
 
 async function captureSheetForPDF(sheet) {
   const originalStates = [];
-  
+
+  // ---- Apply print/PDF mode class ----
+  sheet.classList.add('pdf-mode');
+  document.body.classList.add('pdf-mode');
+
+  // Hide interactive elements
   const controls = sheet.querySelectorAll('.row-del, .table-actions, .sig-controls button');
   controls.forEach(el => {
     originalStates.push({ element: el, display: el.style.display });
     el.style.display = 'none';
   });
   
-  const dateIcons = sheet.querySelectorAll('.date-icon');
-  dateIcons.forEach(el => {
-    originalStates.push({ element: el, display: el.style.display });
-    el.style.display = 'none';
-  });
-  
+  // Ensure parent containers have position:relative for absolute positioning
   const allParents = new Set();
   const elements = sheet.querySelectorAll('input, select');
   elements.forEach(el => {
@@ -1012,6 +997,7 @@ async function captureSheetForPDF(sheet) {
     }
   });
   
+  // Create overlays for inputs/selects that have values
   const overlays = [];
   elements.forEach(el => {
     if (el.offsetWidth === 0 || el.offsetHeight === 0) return;
@@ -1029,8 +1015,9 @@ async function captureSheetForPDF(sheet) {
   
   await new Promise(resolve => setTimeout(resolve, 50));
   
+  // Capture with html2canvas
   const canvas = await html2canvas(sheet, {
-    scale: 2,
+    scale: 2.5,
     backgroundColor: '#ffffff',
     useCORS: true,
     logging: false,
@@ -1040,12 +1027,19 @@ async function captureSheetForPDF(sheet) {
     windowHeight: sheet.scrollHeight
   });
   
+  // Clean up overlays
   overlays.forEach(overlay => overlay.remove());
+  
+  // Restore original states
   originalStates.forEach(({ element, display, visibility, position }) => {
     if (display !== undefined) element.style.display = display;
     if (visibility !== undefined) element.style.visibility = visibility;
     if (position !== undefined) element.style.position = position;
   });
+
+  // Remove the pdf-mode class
+  sheet.classList.remove('pdf-mode');
+  document.body.classList.remove('pdf-mode');
   
   return canvas;
 }
