@@ -455,14 +455,14 @@ function makeRow(){
   const tr = document.createElement('tr');
   tr.innerHTML = `
     <td class="date-cell">
-      <input type="text" class="date-display" placeholder="--/--/--" readonly tabindex="-1">
+      <input type="text" class="date-display" placeholder=" " readonly tabindex="-1">
       <input type="date" class="date-native" aria-label="Date worked">
     </td>
     <td><input type="text" class="day-input" placeholder="--" readonly tabindex="-1"></td>
     <td><input type="text" class="employer-input" placeholder=""></td>
     <td>
       <select class="type-select">
-        <option value="" class="placeholder">Select...</option>
+        <option value="" class="placeholder"> </option>
         <option value="Traffic">Traffic</option>
         <option value="Security">Security</option>
         <option value="Other">Other</option>
