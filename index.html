@@ -339,9 +339,8 @@
       color:var(--muted);
     }
 
-    /* ===== PRINT & PDF-EXPORT STYLES ===== */
-    @media print,
-           .pdf-mode {
+    /* ===== PRINT STYLES (also used by PDF export) ===== */
+    @media print {
       body{background:#fff;padding:0;}
       .toolbar{display:none;}
       .sheet{
@@ -384,7 +383,7 @@
   <div class="toolbar-title">Secondary Employment Report — Digital</div>
   <div class="btn-group">
     <button class="btn-secondary" id="addPageBtn">+ Add Page (20 rows)</button>
-    <button class="btn-primary" id="exportBtn">Export as PDF</button>
+    <button class="btn-secondary" id="printBtn">🖨️ Print</button>
     <button class="btn-secondary" id="saveBtn">💾 Save Progress</button>
     <button class="btn-secondary" id="loadBtn">📂 Load Progress</button>
     <button class="btn-danger" id="clearBtn">🗑️ Clear All</button>
@@ -395,8 +394,6 @@
 <div id="pages"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/4.1.7/signature_pad.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
 // ============================================
@@ -486,10 +483,7 @@ function makeRow(){
 
   // Click anywhere in the cell to open the date picker
   dateCell.addEventListener('click', function(e) {
-    // If the click is directly on the native input, let it handle natively.
-    // Otherwise, programmatically open the picker.
     if (e.target !== dateNative) {
-      // Use showPicker() if available (modern browsers), else fallback to click()
       if (dateNative.showPicker) {
         dateNative.showPicker();
       } else {
@@ -885,6 +879,7 @@ function attachAutoSave() {
 // ============================================
 
 document.getElementById('addPageBtn').addEventListener('click', addPage);
+document.getElementById('printBtn').addEventListener('click', ()=> window.print());
 document.getElementById('clearBtn').addEventListener('click', clearAll);
 
 document.getElementById('saveBtn').addEventListener('click', ()=>{
@@ -900,210 +895,6 @@ document.getElementById('fileInput').addEventListener('change', (e)=>{
   if (e.target.files.length > 0) {
     importStateFromFile(e.target.files[0]);
     e.target.value = '';
-  }
-});
-
-// ============================================
-//  PDF EXPORT – Matches print layout
-// ============================================
-
-function createPDFOverlay(element) {
-  const parent = element.parentElement;
-  const parentRect = parent.getBoundingClientRect();
-  const rect = element.getBoundingClientRect();
-  
-  const cs = window.getComputedStyle(element);
-  
-  const overlay = document.createElement('div');
-  
-  if (element.tagName === 'SELECT') {
-    const selectedIndex = element.selectedIndex;
-    overlay.textContent = selectedIndex >= 0 ? element.options[selectedIndex].text : '';
-    overlay.style.color = element.value === '' ? '#6b7280' : '#1a1d21';
-  } else {
-    overlay.textContent = element.value || '';
-    overlay.style.color = '#1a1d21';
-  }
-  
-  const left = rect.left - parentRect.left;
-  const top = rect.top - parentRect.top;
-  
-  overlay.style.cssText = `
-    position: absolute;
-    left: ${left}px;
-    top: ${top}px;
-    width: ${rect.width}px;
-    height: ${rect.height}px;
-    display: flex;
-    align-items: center;
-    padding: ${cs.padding};
-    font-family: ${cs.fontFamily};
-    font-size: ${cs.fontSize};
-    font-weight: ${cs.fontWeight};
-    color: ${overlay.style.color || '#1a1d21'};
-    background: transparent;
-    pointer-events: none;
-    z-index: 1000;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    box-sizing: border-box;
-  `;
-  
-  if (element.closest('.time-cell')) {
-    overlay.style.padding = '4px 2px';
-  }
-  if (element.classList.contains('date-display')) {
-    overlay.style.paddingRight = '6px';
-  }
-  if (element.classList.contains('hrs-input') || element.classList.contains('day-input')) {
-    overlay.style.justifyContent = 'center';
-  }
-  if (element.classList.contains('type-select')) {
-    overlay.style.width = '100%';
-    overlay.style.padding = '0 4px';
-  }
-  
-  if (element.closest('.info-cell')) {
-    overlay.style.padding = '3px 2px';
-    overlay.style.borderBottom = '1px solid #c9cdd3';
-    overlay.style.borderRadius = '0';
-    overlay.style.backgroundColor = 'transparent';
-    overlay.style.fontSize = '13px';
-    if (element.classList.contains('info-select-month')) {
-      overlay.style.width = (rect.width * 1.4) + 'px';
-      overlay.style.flex = '1.4';
-    }
-    if (element.classList.contains('info-select-year')) {
-      overlay.style.width = (rect.width * 0.8) + 'px';
-      overlay.style.flex = '0.8';
-    }
-    if (element.tagName === 'INPUT' && !element.classList.contains('date-display')) {
-      overlay.style.borderBottom = '1px solid #c9cdd3';
-    }
-  }
-  
-  return overlay;
-}
-
-async function captureSheetForPDF(sheet) {
-  const originalStates = [];
-
-  // ---- Apply print/PDF mode class ----
-  sheet.classList.add('pdf-mode');
-  document.body.classList.add('pdf-mode');
-
-  // Hide interactive elements (they are also hidden by CSS, but ensure they are hidden)
-  const controls = sheet.querySelectorAll('.row-del, .table-actions, .sig-controls button');
-  controls.forEach(el => {
-    originalStates.push({ element: el, display: el.style.display });
-    el.style.display = 'none';
-  });
-  
-  // Ensure parent containers have position:relative for absolute positioning
-  const allParents = new Set();
-  const elements = sheet.querySelectorAll('input, select');
-  elements.forEach(el => {
-    const parent = el.parentElement;
-    if (!allParents.has(parent)) {
-      allParents.add(parent);
-      const pos = window.getComputedStyle(parent).position;
-      if (pos === 'static') {
-        originalStates.push({ element: parent, position: parent.style.position });
-        parent.style.position = 'relative';
-      }
-    }
-  });
-  
-  // Create overlays for inputs/selects that have values
-  const overlays = [];
-  elements.forEach(el => {
-    if (el.offsetWidth === 0 || el.offsetHeight === 0) return;
-    if (el.classList.contains('date-native')) return;
-    if (el.classList.contains('date-display') && !el.value) return;
-    if (el.tagName === 'INPUT' && !el.classList.contains('date-display') && !el.value) return;
-    if (el.tagName === 'SELECT' && !el.value) return;
-    
-    const overlay = createPDFOverlay(el);
-    originalStates.push({ element: el, visibility: el.style.visibility });
-    el.style.visibility = 'hidden';
-    el.parentElement.appendChild(overlay);
-    overlays.push(overlay);
-  });
-  
-  // Small delay to let styles apply
-  await new Promise(resolve => setTimeout(resolve, 50));
-  
-  // Capture with html2canvas
-  const canvas = await html2canvas(sheet, {
-    scale: 2.5,
-    backgroundColor: '#ffffff',
-    useCORS: true,
-    logging: false,
-    width: sheet.scrollWidth,
-    height: sheet.scrollHeight,
-    windowWidth: sheet.scrollWidth,
-    windowHeight: sheet.scrollHeight
-  });
-  
-  // Clean up overlays
-  overlays.forEach(overlay => overlay.remove());
-  
-  // Restore original states
-  originalStates.forEach(({ element, display, visibility, position }) => {
-    if (display !== undefined) element.style.display = display;
-    if (visibility !== undefined) element.style.visibility = visibility;
-    if (position !== undefined) element.style.position = position;
-  });
-
-  // Remove the pdf-mode class
-  sheet.classList.remove('pdf-mode');
-  document.body.classList.remove('pdf-mode');
-  
-  return canvas;
-}
-
-document.getElementById('exportBtn').addEventListener('click', async ()=>{
-  const btn = document.getElementById('exportBtn');
-  const origText = btn.textContent;
-  btn.textContent = '⏳ Generating PDF...';
-  btn.disabled = true;
-
-  try {
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF('p', 'pt', 'letter');
-    const sheets = [...document.querySelectorAll('.sheet')];
-
-    for (let i = 0; i < sheets.length; i++) {
-      const canvas = await captureSheetForPDF(sheets[i]);
-      
-      const imgData = canvas.toDataURL('image/png');
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      
-      const margin = 10;
-      const maxW = pageW - (margin * 2);
-      const maxH = pageH - (margin * 2);
-      
-      const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
-      const w = canvas.width * ratio;
-      const h = canvas.height * ratio;
-      
-      const x = (pageW - w) / 2;
-      const y = (pageH - h) / 2;
-      
-      if (i > 0) pdf.addPage();
-      pdf.addImage(imgData, 'PNG', x, y, w, h);
-    }
-
-    pdf.save('Secondary_Employment_Report.pdf');
-    alert('✅ PDF exported with print layout!');
-  } catch (error) {
-    console.error('PDF export error:', error);
-    alert('❌ Failed to export PDF: ' + error.message);
-  } finally {
-    btn.textContent = origText;
-    btn.disabled = false;
   }
 });
 
