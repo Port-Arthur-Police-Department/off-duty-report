@@ -866,12 +866,13 @@ document.getElementById('fileInput').addEventListener('change', (e)=>{
 });
 
 // ============================================
-//  PDF EXPORT - FIXED ALIGNMENT
+//  PDF EXPORT - FIXED HEADER ALIGNMENT
 // ============================================
 
 function createPDFOverlay(element) {
-  const rect = element.getBoundingClientRect();
   const parent = element.parentElement;
+  const parentRect = parent.getBoundingClientRect();
+  const rect = element.getBoundingClientRect();
   
   // Get computed styles
   const cs = window.getComputedStyle(element);
@@ -889,11 +890,15 @@ function createPDFOverlay(element) {
     overlay.style.color = '#1a1d21';
   }
   
+  // Calculate position relative to parent
+  const left = rect.left - parentRect.left;
+  const top = rect.top - parentRect.top;
+  
   // Position overlay exactly over the element
   overlay.style.cssText = `
     position: absolute;
-    left: ${rect.left - parent.getBoundingClientRect().left}px;
-    top: ${rect.top - parent.getBoundingClientRect().top}px;
+    left: ${left}px;
+    top: ${top}px;
     width: ${rect.width}px;
     height: ${rect.height}px;
     display: flex;
@@ -912,25 +917,54 @@ function createPDFOverlay(element) {
     box-sizing: border-box;
   `;
   
-  // For time selects, adjust padding
+  // Special handling for different element types
   if (element.closest('.time-cell')) {
     overlay.style.padding = '4px 2px';
   }
   
-  // For date display, adjust
   if (element.classList.contains('date-display')) {
     overlay.style.paddingRight = '24px';
   }
   
-  // For hours input, center text
   if (element.classList.contains('hrs-input')) {
     overlay.style.justifyContent = 'center';
   }
   
-  // For type select, ensure full width
   if (element.classList.contains('type-select')) {
     overlay.style.width = '100%';
     overlay.style.padding = '0 4px';
+  }
+  
+  // Special handling for header fields (Officer, Rank, Division, Month/Year)
+  if (element.closest('.info-cell')) {
+    // For header fields, we want to preserve the flex layout
+    overlay.style.position = 'relative';
+    overlay.style.left = 'auto';
+    overlay.style.top = 'auto';
+    overlay.style.width = '100%';
+    overlay.style.height = '100%';
+    overlay.style.flex = '1';
+    overlay.style.padding = '3px 2px';
+    overlay.style.borderBottom = '1px solid #c9cdd3';
+    
+    // If it's the Officer field (input), add extra styling
+    if (element.tagName === 'INPUT') {
+      overlay.style.borderBottom = '1px solid #c9cdd3';
+    }
+    
+    // If it's a select in the header
+    if (element.tagName === 'SELECT') {
+      overlay.style.borderBottom = '1px solid #c9cdd3';
+      overlay.style.padding = '3px 2px';
+    }
+    
+    // For Month/Year selects, adjust flex
+    if (element.classList.contains('info-select-month')) {
+      overlay.style.flex = '1.4';
+    }
+    if (element.classList.contains('info-select-year')) {
+      overlay.style.flex = '0.8';
+    }
   }
   
   return overlay;
@@ -947,8 +981,7 @@ async function captureSheetForPDF(sheet) {
     el.style.display = 'none';
   });
   
-  // Hide date icons
-  const dateIcons = sheet.querySelectorAll('.date-icon');
+  // Hide date icons  const dateIcons = sheet.querySelectorAll('.date-icon');
   dateIcons.forEach(el => {
     originalStates.push({ element: el, display: el.style.display });
     el.style.display = 'none';
