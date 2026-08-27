@@ -150,6 +150,7 @@
       border:1px solid var(--line);
       padding:0;
       height:30px;
+      position:relative;
     }
     tbody td input{
       width:100%;
@@ -248,6 +249,7 @@
       align-items:center;
       gap:4px;
       padding:0 4px;
+      height:100%;
     }
     .time-cell select{
       flex:1;
@@ -259,6 +261,7 @@
       background:transparent;
       padding:4px 2px;
       color:var(--ink);
+      height:100%;
     }
     .time-cell select:invalid,
     .time-cell select.placeholder{color:var(--muted);}
@@ -863,77 +866,150 @@ document.getElementById('fileInput').addEventListener('change', (e)=>{
 });
 
 // ============================================
-//  PDF EXPORT - SIMPLIFIED & RELIABLE
+//  PDF EXPORT - FIXED ALIGNMENT
 // ============================================
 
-async function captureSheetForPDF(sheet, index, totalPages) {
+function createPDFOverlay(element) {
+  const rect = element.getBoundingClientRect();
+  const parent = element.parentElement;
+  
+  // Get computed styles
+  const cs = window.getComputedStyle(element);
+  
+  // Create overlay div
+  const overlay = document.createElement('div');
+  
+  // Set text based on element type
+  if (element.tagName === 'SELECT') {
+    const selectedIndex = element.selectedIndex;
+    overlay.textContent = selectedIndex >= 0 ? element.options[selectedIndex].text : '';
+    overlay.style.color = element.value === '' ? '#6b7280' : '#1a1d21';
+  } else {
+    overlay.textContent = element.value || '';
+    overlay.style.color = '#1a1d21';
+  }
+  
+  // Position overlay exactly over the element
+  overlay.style.cssText = `
+    position: absolute;
+    left: ${rect.left - parent.getBoundingClientRect().left}px;
+    top: ${rect.top - parent.getBoundingClientRect().top}px;
+    width: ${rect.width}px;
+    height: ${rect.height}px;
+    display: flex;
+    align-items: center;
+    padding: ${cs.padding};
+    font-family: ${cs.fontFamily};
+    font-size: ${cs.fontSize};
+    font-weight: ${cs.fontWeight};
+    color: ${overlay.style.color};
+    background: transparent;
+    pointer-events: none;
+    z-index: 1000;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box;
+  `;
+  
+  // For time selects, adjust padding
+  if (element.closest('.time-cell')) {
+    overlay.style.padding = '4px 2px';
+  }
+  
+  // For date display, adjust
+  if (element.classList.contains('date-display')) {
+    overlay.style.paddingRight = '24px';
+  }
+  
+  // For hours input, center text
+  if (element.classList.contains('hrs-input')) {
+    overlay.style.justifyContent = 'center';
+  }
+  
+  // For type select, ensure full width
+  if (element.classList.contains('type-select')) {
+    overlay.style.width = '100%';
+    overlay.style.padding = '0 4px';
+  }
+  
+  return overlay;
+}
+
+async function captureSheetForPDF(sheet) {
+  // Store original elements and their states
+  const originalStates = [];
+  
   // Hide interactive elements
   const controls = sheet.querySelectorAll('.row-del, .table-actions, .sig-controls button');
-  controls.forEach(el => el.style.display = 'none');
+  controls.forEach(el => {
+    originalStates.push({ element: el, display: el.style.display });
+    el.style.display = 'none';
+  });
   
-  // Make sure all select values are visible
-  const selects = sheet.querySelectorAll('select');
-  selects.forEach(sel => {
-    // Add a data attribute to remember original state
-    sel.dataset.originalValue = sel.value;
-    // For select elements, we need to make the selected text visible
-    // by adding a span with the text
-    const selectedText = sel.options[sel.selectedIndex]?.text || '';
-    if (selectedText && !sel.dataset.hasOverlay) {
-      const overlay = document.createElement('span');
-      overlay.className = 'pdf-select-overlay';
-      overlay.textContent = selectedText;
-      overlay.style.cssText = `
-        position: absolute;
-        left: 4px;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: ${window.getComputedStyle(sel).fontSize};
-        font-family: ${window.getComputedStyle(sel).fontFamily};
-        color: #1a1d21;
-        pointer-events: none;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: calc(100% - 8px);
-      `;
-      sel.parentElement.style.position = 'relative';
-      sel.parentElement.appendChild(overlay);
-      sel.dataset.hasOverlay = 'true';
-    }
+  // Hide date icons
+  const dateIcons = sheet.querySelectorAll('.date-icon');
+  dateIcons.forEach(el => {
+    originalStates.push({ element: el, display: el.style.display });
+    el.style.display = 'none';
   });
-
-  // Ensure date display shows value
-  const dateDisplays = sheet.querySelectorAll('.date-display');
-  dateDisplays.forEach(d => {
-    if (d.value) {
-      d.style.color = '#1a1d21';
-    }
+  
+  // Create overlays for all inputs and selects
+  const overlays = [];
+  const elements = sheet.querySelectorAll('input, select');
+  
+  elements.forEach(el => {
+    // Skip hidden or non-visible elements
+    if (el.offsetWidth === 0 || el.offsetHeight === 0) return;
+    
+    // Skip the native date input (it's hidden)
+    if (el.classList.contains('date-native')) return;
+    
+    // For date display, only create overlay if it has a value
+    if (el.classList.contains('date-display') && !el.value) return;
+    
+    // For regular inputs, only create overlay if they have a value
+    if (el.tagName === 'INPUT' && !el.classList.contains('date-display') && !el.value) return;
+    
+    // For selects, always create overlay if they have a selection
+    if (el.tagName === 'SELECT' && !el.value) return;
+    
+    // Create the overlay
+    const overlay = createPDFOverlay(el);
+    
+    // Store original visibility
+    originalStates.push({ element: el, visibility: el.style.visibility });
+    el.style.visibility = 'hidden';
+    
+    // Add overlay to parent
+    el.parentElement.appendChild(overlay);
+    overlays.push(overlay);
   });
-
-  // Wait for any layout changes
+  
+  // Wait for DOM to update
   await new Promise(resolve => setTimeout(resolve, 50));
-
+  
   // Capture with html2canvas
   const canvas = await html2canvas(sheet, {
     scale: 2,
     backgroundColor: '#ffffff',
     useCORS: true,
     logging: false,
+    width: sheet.scrollWidth,
+    height: sheet.scrollHeight,
     windowWidth: sheet.scrollWidth,
     windowHeight: sheet.scrollHeight
   });
-
+  
   // Clean up overlays
-  const overlays = sheet.querySelectorAll('.pdf-select-overlay');
-  overlays.forEach(el => el.remove());
-  selects.forEach(sel => {
-    delete sel.dataset.hasOverlay;
+  overlays.forEach(overlay => overlay.remove());
+  
+  // Restore original states
+  originalStates.forEach(({ element, display, visibility }) => {
+    if (display !== undefined) element.style.display = display;
+    if (visibility !== undefined) element.style.visibility = visibility;
   });
   
-  // Show interactive elements again
-  controls.forEach(el => el.style.display = '');
-
   return canvas;
 }
 
@@ -949,7 +1025,7 @@ document.getElementById('exportBtn').addEventListener('click', async ()=>{
     const sheets = [...document.querySelectorAll('.sheet')];
 
     for (let i = 0; i < sheets.length; i++) {
-      const canvas = await captureSheetForPDF(sheets[i], i, sheets.length);
+      const canvas = await captureSheetForPDF(sheets[i]);
       
       const imgData = canvas.toDataURL('image/png');
       const pageW = pdf.internal.pageSize.getWidth();
