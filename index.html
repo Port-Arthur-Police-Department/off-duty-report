@@ -99,6 +99,7 @@
       display:flex;
       align-items:center;
       gap:6px;
+      position:relative;
     }
     .info-cell:nth-child(odd){border-right:1px solid var(--line-strong);}
     .info-cell:nth-last-child(-n+2){border-bottom:none;}
@@ -894,7 +895,7 @@ function createPDFOverlay(element) {
   const left = rect.left - parentRect.left;
   const top = rect.top - parentRect.top;
   
-  // Position overlay exactly over the element
+  // Position overlay exactly over the element using absolute positioning
   overlay.style.cssText = `
     position: absolute;
     left: ${left}px;
@@ -907,7 +908,7 @@ function createPDFOverlay(element) {
     font-family: ${cs.fontFamily};
     font-size: ${cs.fontSize};
     font-weight: ${cs.fontWeight};
-    color: ${overlay.style.color};
+    color: ${overlay.style.color || '#1a1d21'};
     background: transparent;
     pointer-events: none;
     z-index: 1000;
@@ -935,35 +936,28 @@ function createPDFOverlay(element) {
     overlay.style.padding = '0 4px';
   }
   
-  // Special handling for header fields (Officer, Rank, Division, Month/Year)
+  // For header fields in info-grid
   if (element.closest('.info-cell')) {
-    // For header fields, we want to preserve the flex layout
-    overlay.style.position = 'relative';
-    overlay.style.left = 'auto';
-    overlay.style.top = 'auto';
-    overlay.style.width = '100%';
-    overlay.style.height = '100%';
-    overlay.style.flex = '1';
+    // Adjust padding to match header style
     overlay.style.padding = '3px 2px';
     overlay.style.borderBottom = '1px solid #c9cdd3';
+    overlay.style.borderRadius = '0';
+    overlay.style.backgroundColor = 'transparent';
+    overlay.style.fontSize = '13px';
     
-    // If it's the Officer field (input), add extra styling
-    if (element.tagName === 'INPUT') {
-      overlay.style.borderBottom = '1px solid #c9cdd3';
-    }
-    
-    // If it's a select in the header
-    if (element.tagName === 'SELECT') {
-      overlay.style.borderBottom = '1px solid #c9cdd3';
-      overlay.style.padding = '3px 2px';
-    }
-    
-    // For Month/Year selects, adjust flex
+    // For Month/Year selects, preserve flex ratios
     if (element.classList.contains('info-select-month')) {
+      overlay.style.width = (rect.width * 1.4) + 'px';
       overlay.style.flex = '1.4';
     }
     if (element.classList.contains('info-select-year')) {
+      overlay.style.width = (rect.width * 0.8) + 'px';
       overlay.style.flex = '0.8';
+    }
+    
+    // For the Officer input
+    if (element.tagName === 'INPUT' && !element.classList.contains('date-display')) {
+      overlay.style.borderBottom = '1px solid #c9cdd3';
     }
   }
   
@@ -981,15 +975,30 @@ async function captureSheetForPDF(sheet) {
     el.style.display = 'none';
   });
   
-  // Hide date icons  const dateIcons = sheet.querySelectorAll('.date-icon');
+  // Hide date icons
+  const dateIcons = sheet.querySelectorAll('.date-icon');
   dateIcons.forEach(el => {
     originalStates.push({ element: el, display: el.style.display });
     el.style.display = 'none';
   });
   
+  // Make sure parent containers have position:relative for absolute positioning
+  const allParents = new Set();
+  const elements = sheet.querySelectorAll('input, select');
+  elements.forEach(el => {
+    const parent = el.parentElement;
+    if (!allParents.has(parent)) {
+      allParents.add(parent);
+      const pos = window.getComputedStyle(parent).position;
+      if (pos === 'static') {
+        originalStates.push({ element: parent, position: parent.style.position });
+        parent.style.position = 'relative';
+      }
+    }
+  });
+  
   // Create overlays for all inputs and selects
   const overlays = [];
-  const elements = sheet.querySelectorAll('input, select');
   
   elements.forEach(el => {
     // Skip hidden or non-visible elements
@@ -1004,7 +1013,7 @@ async function captureSheetForPDF(sheet) {
     // For regular inputs, only create overlay if they have a value
     if (el.tagName === 'INPUT' && !el.classList.contains('date-display') && !el.value) return;
     
-    // For selects, always create overlay if they have a selection
+    // For selects, create overlay if they have a selection
     if (el.tagName === 'SELECT' && !el.value) return;
     
     // Create the overlay
@@ -1038,9 +1047,10 @@ async function captureSheetForPDF(sheet) {
   overlays.forEach(overlay => overlay.remove());
   
   // Restore original states
-  originalStates.forEach(({ element, display, visibility }) => {
+  originalStates.forEach(({ element, display, visibility, position }) => {
     if (display !== undefined) element.style.display = display;
     if (visibility !== undefined) element.style.visibility = visibility;
+    if (position !== undefined) element.style.position = position;
   });
   
   return canvas;
