@@ -139,6 +139,46 @@
     font-family:inherit;
     background:transparent;
   }
+  .date-cell{
+    position:relative;
+    display:flex;
+    align-items:center;
+    height:100%;
+  }
+  input.date-display{
+    width:100%;
+    height:100%;
+    border:none;
+    outline:none;
+    font-size:12.5px;
+    padding:0 24px 0 6px;
+    font-family:inherit;
+    background:transparent;
+    cursor:pointer;
+    color:var(--ink);
+  }
+  input.date-display::placeholder{color:var(--muted);}
+  input.date-native{
+    position:absolute;
+    opacity:0;
+    width:1px;
+    height:1px;
+    pointer-events:none;
+  }
+  .date-icon{
+    position:absolute;
+    right:4px;
+    top:50%;
+    transform:translateY(-50%);
+    border:none;
+    background:none;
+    padding:0;
+    font-size:12px;
+    cursor:pointer;
+    color:var(--muted);
+    line-height:1;
+  }
+  .date-icon:hover{color:var(--accent);}
   tbody td input:focus{background:#fbfcfe;}
   tbody tr:hover td{background:#fafbfc;}
   .row-del{
@@ -151,12 +191,40 @@
     background:#fff;
   }
   .row-del:hover{color:#b3261e;}
-  col.c-date{width:12%;}
-  col.c-emp{width:31%;}
-  col.c-type{width:22%;}
-  col.c-time{width:15%;}
-  col.c-hrs{width:14%;}
+  col.c-date{width:11%;}
+  col.c-emp{width:24%;}
+  col.c-type{width:18%;}
+  col.c-time{width:31%;}
+  col.c-hrs{width:10%;}
   col.c-del{width:26px;}
+
+  .time-cell{
+    display:flex;
+    align-items:center;
+    gap:4px;
+    padding:0 4px;
+  }
+  .time-cell select{
+    flex:1;
+    min-width:0;
+    border:none;
+    outline:none;
+    font-size:11.5px;
+    font-family:inherit;
+    background:transparent;
+    padding:4px 2px;
+    color:var(--ink);
+  }
+  .time-cell select:invalid,
+  .time-cell select.placeholder{color:var(--muted);}
+  .time-sep{color:var(--muted);font-size:11px;flex-shrink:0;}
+  input.hrs-input{
+    background:var(--accent-soft) !important;
+    color:var(--accent);
+    font-weight:700;
+    text-align:center;
+    cursor:default;
+  }
 
   .table-actions{
     display:flex;
@@ -252,6 +320,7 @@
       padding:24px 30px;
     }
     .row-del,.table-actions,.sig-controls button{display:none;}
+    .time-cell select{appearance:none;-webkit-appearance:none;background:transparent;}
     thead th{background:#eee !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .total-row{background:#eee !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
   }
@@ -285,21 +354,85 @@ const pagesEl = document.getElementById('pages');
 let pageCount = 0;
 const sigPads = {}; // id -> SignaturePad instance
 
+function timeOptionsHTML(){
+  let html = '<option value="" class="placeholder">--:--</option>';
+  for(let m=0; m<24*60; m+=15){
+    const h24 = Math.floor(m/60);
+    const min = m%60;
+    const ampm = h24 < 12 ? 'AM' : 'PM';
+    let h12 = h24 % 12; if(h12===0) h12 = 12;
+    const label = `${h12}:${String(min).padStart(2,'0')} ${ampm}`;
+    html += `<option value="${m}">${label}</option>`;
+  }
+  return html;
+}
+const TIME_OPTIONS_HTML = timeOptionsHTML();
+
+function computeHours(tr){
+  const startSel = tr.querySelector('.time-start');
+  const endSel = tr.querySelector('.time-end');
+  const hrsInput = tr.querySelector('.hrs-input');
+  const s = startSel.value, e = endSel.value;
+  if(s === '' || e === ''){
+    hrsInput.value = '';
+  } else {
+    let diff = parseInt(e) - parseInt(s);
+    if(diff <= 0) diff += 24*60; // shift crosses midnight
+    hrsInput.value = (diff/60).toFixed(2);
+  }
+  updateTotal(tr.closest('.sheet'));
+}
+
+function formatDateShort(iso){
+  // iso: "YYYY-MM-DD" -> "M/D/YY" without timezone shift issues
+  const [y, m, d] = iso.split('-').map(Number);
+  const yy = String(y % 100).padStart(2,'0');
+  return `${m}/${d}/${yy}`;
+}
+
 function makeRow(){
   const tr = document.createElement('tr');
   tr.innerHTML = `
+    <td class="date-cell">
+      <input type="text" class="date-display" placeholder="--/--/--" readonly>
+      <input type="date" class="date-native" tabindex="-1">
+      <button type="button" class="date-icon" title="Pick date">&#128197;</button>
+    </td>
     <td><input type="text" placeholder=""></td>
     <td><input type="text" placeholder=""></td>
-    <td><input type="text" placeholder=""></td>
-    <td><input type="text" placeholder=""></td>
-    <td><input type="number" step="0.25" class="hrs-input" placeholder=""></td>
+    <td class="time-cell">
+      <select class="time-start">${TIME_OPTIONS_HTML}</select>
+      <span class="time-sep">–</span>
+      <select class="time-end">${TIME_OPTIONS_HTML}</select>
+    </td>
+    <td><input type="text" class="hrs-input" placeholder="" readonly tabindex="-1"></td>
     <td class="row-del" title="Clear row">✕</td>
   `;
+
+  const dateDisplay = tr.querySelector('.date-display');
+  const dateNative = tr.querySelector('.date-native');
+  const dateIcon = tr.querySelector('.date-icon');
+
+  function openPicker(){
+    if(typeof dateNative.showPicker === 'function'){
+      try{ dateNative.showPicker(); return; }catch(e){}
+    }
+    dateNative.focus();
+    dateNative.click();
+  }
+  dateDisplay.addEventListener('click', openPicker);
+  dateIcon.addEventListener('click', openPicker);
+  dateNative.addEventListener('change', ()=>{
+    dateDisplay.value = dateNative.value ? formatDateShort(dateNative.value) : '';
+  });
+
   tr.querySelector('.row-del').addEventListener('click', ()=>{
     tr.querySelectorAll('input').forEach(i=>i.value='');
+    tr.querySelectorAll('select').forEach(s=>s.value='');
     updateTotal(tr.closest('.sheet'));
   });
-  tr.querySelector('.hrs-input').addEventListener('input', ()=> updateTotal(tr.closest('.sheet')));
+  tr.querySelector('.time-start').addEventListener('change', ()=> computeHours(tr));
+  tr.querySelector('.time-end').addEventListener('change', ()=> computeHours(tr));
   return tr;
 }
 
