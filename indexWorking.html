@@ -163,6 +163,9 @@
       font-family:inherit;
       background:transparent;
     }
+    tbody td input.day-input {
+      text-align: center;
+    }
     tbody td select.type-select{
       width:100%;
       height:100%;
@@ -238,10 +241,11 @@
       background:#fff;
     }
     .row-del:hover{color:#b3261e;}
-    col.c-date{width:11%;}
-    col.c-emp{width:24%;}
-    col.c-type{width:18%;}
-    col.c-time{width:31%;}
+    col.c-date{width:10%;}
+    col.c-day{width:10%;}
+    col.c-emp{width:22%;}
+    col.c-type{width:16%;}
+    col.c-time{width:26%;}
     col.c-hrs{width:10%;}
     col.c-del{width:26px;}
 
@@ -450,7 +454,8 @@ function makeRow(){
       <button type="button" class="date-icon" tabindex="-1">&#128197;</button>
       <input type="date" class="date-native" aria-label="Date worked">
     </td>
-    <td><input type="text" placeholder=""></td>
+    <td><input type="text" class="day-input" placeholder="--" readonly tabindex="-1"></td>
+    <td><input type="text" class="employer-input" placeholder=""></td>
     <td>
       <select class="type-select">
         <option value="" class="placeholder">Select...</option>
@@ -470,9 +475,17 @@ function makeRow(){
 
   const dateDisplay = tr.querySelector('.date-display');
   const dateNative = tr.querySelector('.date-native');
+  const dayInput = tr.querySelector('.day-input');
 
   dateNative.addEventListener('change', ()=>{
-    dateDisplay.value = dateNative.value ? formatDateShort(dateNative.value) : '';
+    if (dateNative.value) {
+      dateDisplay.value = formatDateShort(dateNative.value);
+      const dateObj = new Date(dateNative.value + 'T00:00:00');
+      dayInput.value = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+    } else {
+      dateDisplay.value = '';
+      dayInput.value = '';
+    }
   });
 
   tr.querySelector('.row-del').addEventListener('click', ()=>{
@@ -564,11 +577,11 @@ function addPage(){
     </div>` : ''}
     <table>
       <colgroup>
-        <col class="c-date"><col class="c-emp"><col class="c-type"><col class="c-time"><col class="c-hrs"><col class="c-del">
+        <col class="c-date"><col class="c-day"><col class="c-emp"><col class="c-type"><col class="c-time"><col class="c-hrs"><col class="c-del">
       </colgroup>
       <thead>
         <tr>
-          <th>Date Worked</th><th>Employer</th><th>Type of Work</th><th>Time Worked</th><th>Hours</th><th></th>
+          <th>Date Worked</th><th>Day of Week</th><th>Employer</th><th>Type of Work</th><th>Time Worked</th><th>Hours</th><th></th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -648,14 +661,16 @@ function collectPageData(sheet) {
   const rows = [];
   sheet.querySelectorAll('tbody tr').forEach(tr => {
     const dateNative = tr.querySelector('.date-native');
-    const employer = tr.querySelector('td:nth-child(2) input').value;
+    const dayInput = tr.querySelector('.day-input');
+    const employerInput = tr.querySelector('.employer-input');
     const type = tr.querySelector('.type-select').value;
     const start = tr.querySelector('.time-start').value;
     const end = tr.querySelector('.time-end').value;
     rows.push({
       date: dateNative.value,
-      employer,
-      type,
+      day: dayInput.value,
+      employer: employerInput.value,
+      type: type,
       start: start || '',
       end: end || ''
     });
@@ -753,7 +768,8 @@ function restorePageFromData(pageData, pageIndex) {
     const tr = rows[i];
     const dateNative = tr.querySelector('.date-native');
     const dateDisplay = tr.querySelector('.date-display');
-    const employer = tr.querySelector('td:nth-child(2) input');
+    const dayInput = tr.querySelector('.day-input');
+    const employerInput = tr.querySelector('.employer-input');
     const type = tr.querySelector('.type-select');
     const start = tr.querySelector('.time-start');
     const end = tr.querySelector('.time-end');
@@ -761,8 +777,9 @@ function restorePageFromData(pageData, pageIndex) {
     if (rowData.date) {
       dateNative.value = rowData.date;
       dateDisplay.value = formatDateShort(rowData.date);
+      dayInput.value = rowData.day || '';
     }
-    employer.value = rowData.employer || '';
+    employerInput.value = rowData.employer || '';
     type.value = rowData.type || '';
     start.value = rowData.start || '';
     end.value = rowData.end || '';
@@ -927,7 +944,7 @@ function createPDFOverlay(element) {
     overlay.style.paddingRight = '24px';
   }
   
-  if (element.classList.contains('hrs-input')) {
+  if (element.classList.contains('hrs-input') || element.classList.contains('day-input')) {
     overlay.style.justifyContent = 'center';
   }
   
