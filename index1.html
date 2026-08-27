@@ -388,7 +388,11 @@
     <button class="btn-primary" id="exportBtn">Export as PDF</button>
     <button class="btn-secondary" id="saveBtn">💾 Save Progress</button>
     <button class="btn-secondary" id="loadBtn">📂 Load Progress</button>
+    <!-- optional extra file buttons (they do the same) -->
+    <button class="btn-secondary" id="exportFileBtn" style="display:none;">📤 Export File</button>
+    <button class="btn-secondary" id="importFileBtn" style="display:none;">📥 Import File</button>
   </div>
+  <input type="file" id="fileInput" accept=".json" style="display:none">
 </div>
 
 <div id="pages"></div>
@@ -436,14 +440,13 @@ function computeHours(tr){
     hrsInput.value = '';
   } else {
     let diff = parseInt(e) - parseInt(s);
-    if(diff <= 0) diff += 24*60; // shift crosses midnight
+    if(diff <= 0) diff += 24*60;
     hrsInput.value = (diff/60).toFixed(2);
   }
   updateTotal(tr.closest('.sheet'));
 }
 
 function formatDateShort(iso){
-  // iso: "YYYY-MM-DD" -> "M/D/YY" without timezone shift issues
   const [y, m, d] = iso.split('-').map(Number);
   const yy = String(y % 100).padStart(2,'0');
   return `${m}/${d}/${yy}`;
@@ -653,10 +656,8 @@ function renumberPages(){
 }
 
 // ============================================
-//  SAVE / LOAD with localStorage
+//  STATE COLLECTION / APPLICATION
 // ============================================
-
-const STORAGE_KEY = 'employmentForm';
 
 function collectPageData(sheet) {
   const rows = [];
@@ -694,80 +695,35 @@ function collectHeaderData() {
   };
 }
 
-function saveFormState() {
+function getFullState() {
   const sheets = document.querySelectorAll('.sheet');
   const pages = [];
   sheets.forEach(sheet => pages.push(collectPageData(sheet)));
   const header = collectHeaderData();
-  const state = { header, pages };
+  return { header, pages };
+}
+
+// ---- LOCAL STORAGE (auto-save) ----
+const STORAGE_KEY = 'employmentForm';
+
+function saveToLocalStorage(state) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    console.log('✅ Form progress saved.');
-  } catch (e) {
-    console.warn('Could not save state:', e);
-    alert('Failed to save progress. Storage might be full or unavailable.');
-  }
+  } catch (e) { /* ignore */ }
 }
 
-function restorePageFromData(pageData, pageIndex) {
-  // Add a new blank page
-  addPage();
-  const sheets = document.querySelectorAll('.sheet');
-  const sheet = sheets[pageIndex];
-  if (!sheet) return;
-
-  const tbody = sheet.querySelector('tbody');
-  const rows = tbody.querySelectorAll('tr');
-
-  // Fill rows
-  pageData.rows.forEach((rowData, i) => {
-    if (i >= rows.length) return;
-    const tr = rows[i];
-    const dateNative = tr.querySelector('.date-native');
-    const dateDisplay = tr.querySelector('.date-display');
-    const employer = tr.querySelector('td:nth-child(2) input');
-    const type = tr.querySelector('.type-select');
-    const start = tr.querySelector('.time-start');
-    const end = tr.querySelector('.time-end');
-
-    if (rowData.date) {
-      dateNative.value = rowData.date;
-      dateDisplay.value = formatDateShort(rowData.date);
-    }
-    employer.value = rowData.employer || '';
-    type.value = rowData.type || '';
-    start.value = rowData.start || '';
-    end.value = rowData.end || '';
-    computeHours(tr);
-  });
-
-  // Restore signatures
-  const pid = sheet.dataset.page;
-  const officerPad = sigPads[`sig-officer-${pid}`];
-  const commanderPad = sigPads[`sig-commander-${pid}`];
-  if (officerPad && pageData.sigOfficer) {
-    try { officerPad.fromDataURL(pageData.sigOfficer); } catch(e) {}
-  }
-  if (commanderPad && pageData.sigCommander) {
-    try { commanderPad.fromDataURL(pageData.sigCommander); } catch(e) {}
-  }
+function loadFromLocalStorage() {
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return null;
+  try { return JSON.parse(raw); } catch { return null; }
 }
 
-function loadFormState() {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (!saved) {
-    alert('No saved progress found.');
-    return;
-  }
-  let state;
-  try { state = JSON.parse(saved); } catch {
-    alert('Saved data is corrupted.');
-    return;
-  }
-
+// ---- APPLY STATE TO UI ----
+function applyState(state) {
   // Remove all existing pages
   document.querySelectorAll('.sheet').forEach(el => el.remove());
   pageCount = 0;
+  for (const key in sigPads) delete sigPads[key];
 
   // Restore pages
   state.pages.forEach((pageData, idx) => {
@@ -789,43 +745,140 @@ function loadFormState() {
     }
   }
 
-  // Recalculate all totals
+  // Recalculate totals
   document.querySelectorAll('.sheet').forEach(sheet => updateTotal(sheet));
-  console.log('✅ Form progress loaded.');
+  // Save to localStorage so auto-save picks it up
+  saveToLocalStorage(state);
 }
 
-// ---- Auto‑save on any change ----
+function restorePageFromData(pageData, pageIndex) {
+  addPage();
+  const sheets = document.querySelectorAll('.sheet');
+  const sheet = sheets[pageIndex];
+  if (!sheet) return;
 
+  const tbody = sheet.querySelector('tbody');
+  const rows = tbody.querySelectorAll('tr');
+
+  pageData.rows.forEach((rowData, i) => {
+    if (i >= rows.length) return;
+    const tr = rows[i];
+    const dateNative = tr.querySelector('.date-native');
+    const dateDisplay = tr.querySelector('.date-display');
+    const employer = tr.querySelector('td:nth-child(2) input');
+    const type = tr.querySelector('.type-select');
+    const start = tr.querySelector('.time-start');
+    const end = tr.querySelector('.time-end');
+
+    if (rowData.date) {
+      dateNative.value = rowData.date;
+      dateDisplay.value = formatDateShort(rowData.date);
+    }
+    employer.value = rowData.employer || '';
+    type.value = rowData.type || '';
+    start.value = rowData.start || '';
+    end.value = rowData.end || '';
+    computeHours(tr);
+  });
+
+  const pid = sheet.dataset.page;
+  const officerPad = sigPads[`sig-officer-${pid}`];
+  const commanderPad = sigPads[`sig-commander-${pid}`];
+  if (officerPad && pageData.sigOfficer) {
+    try { officerPad.fromDataURL(pageData.sigOfficer); } catch(e) {}
+  }
+  if (commanderPad && pageData.sigCommander) {
+    try { commanderPad.fromDataURL(pageData.sigCommander); } catch(e) {}
+  }
+}
+
+// ---- FILE EXPORT / IMPORT ----
+function exportStateToFile() {
+  const state = getFullState();
+  const json = JSON.stringify(state, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `EmploymentReport_Backup_${new Date().toISOString().slice(0,10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  console.log('📤 File exported.');
+}
+
+function importStateFromFile(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const state = JSON.parse(e.target.result);
+      if (!state.header || !state.pages || !Array.isArray(state.pages)) {
+        throw new Error('Invalid file structure.');
+      }
+      applyState(state);
+      alert('✅ File imported successfully!');
+    } catch (err) {
+      alert('❌ Failed to import file: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// ---- AUTO-SAVE (localStorage) ----
 function attachAutoSave() {
-  // Use event delegation for all inputs/selects inside sheets
   document.addEventListener('input', (e) => {
-    if (e.target.closest('.sheet')) saveFormState();
+    if (e.target.closest('.sheet')) {
+      const state = getFullState();
+      saveToLocalStorage(state);
+    }
   });
   document.addEventListener('change', (e) => {
-    if (e.target.closest('.sheet')) saveFormState();
+    if (e.target.closest('.sheet')) {
+      const state = getFullState();
+      saveToLocalStorage(state);
+    }
   });
-  // Also save before leaving the page
-  window.addEventListener('beforeunload', saveFormState);
+  window.addEventListener('beforeunload', () => {
+    const state = getFullState();
+    saveToLocalStorage(state);
+  });
 }
 
 // ============================================
-//  Button bindings
+//  BUTTON BINDINGS
 // ============================================
 
 document.getElementById('addPageBtn').addEventListener('click', addPage);
 document.getElementById('printBtn').addEventListener('click', ()=> window.print());
+
+// Save Progress -> download JSON file
 document.getElementById('saveBtn').addEventListener('click', ()=>{
-  saveFormState();
-  alert('Progress saved.');
+  exportStateToFile();
+  alert('Progress saved as .json file.');
 });
+
+// Load Progress -> open file picker
 document.getElementById('loadBtn').addEventListener('click', ()=>{
-  if (confirm('Load saved progress? This will replace all current data.')) {
-    loadFormState();
+  document.getElementById('fileInput').click();
+});
+
+// Hidden file input for Load
+document.getElementById('fileInput').addEventListener('change', (e)=>{
+  if (e.target.files.length > 0) {
+    importStateFromFile(e.target.files[0]);
+    e.target.value = ''; // reset so same file can be re-imported
   }
 });
 
+// Optional extra buttons (hidden by default, but you can enable them)
+document.getElementById('exportFileBtn')?.addEventListener('click', exportStateToFile);
+document.getElementById('importFileBtn')?.addEventListener('click', ()=>{
+  document.getElementById('fileInput').click();
+});
+
 // ============================================
-//  PDF Export (unchanged)
+//  PDF EXPORT
 // ============================================
 
 function prepExportOverlays(sheet){
@@ -916,9 +969,17 @@ document.getElementById('exportBtn').addEventListener('click', async ()=>{
   btn.disabled = false;
 });
 
-// ---- Start the app ----
+// ---- START ----
 attachAutoSave();
-loadFormState();   // loads if saved data exists, otherwise creates a blank page
+
+// Try to load from localStorage first
+const saved = loadFromLocalStorage();
+if (saved) {
+  applyState(saved);
+} else {
+  // Otherwise start with one blank page
+  addPage();
+}
 </script>
 
 </body>
