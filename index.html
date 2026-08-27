@@ -69,6 +69,7 @@
       border-radius:10px;
       padding:36px 40px 28px;
       position:relative;
+      page-break-inside:avoid;
     }
     .sheet .page-tag{
       position:absolute;
@@ -163,8 +164,8 @@
       font-family:inherit;
       background:transparent;
     }
-    tbody td input.day-input {
-      text-align: center;
+    tbody td input.day-input{
+      text-align:center;
     }
     tbody td select.type-select{
       width:100%;
@@ -358,12 +359,24 @@
         border-radius:0;
         margin:0 auto;
         page-break-after:always;
-        padding:24px 30px;
+        page-break-inside:avoid;
+        padding:24px 30px 16px;
       }
       .row-del,.table-actions,.sig-controls button{display:none;}
       .time-cell select{appearance:none;-webkit-appearance:none;background:transparent;}
       thead th{background:#eee !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
       .total-row{background:#eee !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+      tbody td{height:26px;}
+      tbody td input{font-size:11px;padding:0 4px;}
+      tbody td select.type-select{font-size:11px;padding:0 2px;}
+      .time-cell select{font-size:10px;padding:2px 1px;}
+      .sig-pad-wrap canvas.sig-pad{height:60px;}
+      .info-grid{margin-bottom:14px;}
+      .sig-section{margin-top:14px;gap:12px;}
+      .sig-block{padding:6px 10px 8px;}
+      .total-row{padding:4px 10px;font-size:12px;}
+      h1{font-size:18px;margin:0 0 12px;}
+      .sheet .page-tag{top:8px;right:12px;font-size:9px;}
     }
 
     @media (max-width:640px){
@@ -379,7 +392,7 @@
 <div class="toolbar">
   <div class="toolbar-title">Secondary Employment Report — Digital</div>
   <div class="btn-group">
-    <button class="btn-secondary" id="addPageBtn">+ Add Page (25 rows)</button>
+    <button class="btn-secondary" id="addPageBtn">+ Add Page (20 rows)</button>
     <button class="btn-secondary" id="printBtn">Print</button>
     <button class="btn-primary" id="exportBtn">Export as PDF</button>
     <button class="btn-secondary" id="saveBtn">💾 Save Progress</button>
@@ -396,7 +409,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
-const ROWS_PER_PAGE = 25;
+// ============================================
+//  CONFIGURATION – Reduced to 20 rows per page
+// ============================================
+const ROWS_PER_PAGE = 20;
+
 const pagesEl = document.getElementById('pages');
 let pageCount = 0;
 const sigPads = {};
@@ -458,7 +475,7 @@ function makeRow(){
     <td><input type="text" class="employer-input" placeholder=""></td>
     <td>
       <select class="type-select">
-        <option value="" class="placeholder"> </option>
+        <option value="" class="placeholder">Select...</option>
         <option value="Traffic">Traffic</option>
         <option value="Security">Security</option>
         <option value="Other">Other</option>
@@ -884,7 +901,7 @@ document.getElementById('fileInput').addEventListener('change', (e)=>{
 });
 
 // ============================================
-//  PDF EXPORT - FIXED HEADER ALIGNMENT
+//  PDF EXPORT – FULL PAGE
 // ============================================
 
 function createPDFOverlay(element) {
@@ -892,13 +909,10 @@ function createPDFOverlay(element) {
   const parentRect = parent.getBoundingClientRect();
   const rect = element.getBoundingClientRect();
   
-  // Get computed styles
   const cs = window.getComputedStyle(element);
   
-  // Create overlay div
   const overlay = document.createElement('div');
   
-  // Set text based on element type
   if (element.tagName === 'SELECT') {
     const selectedIndex = element.selectedIndex;
     overlay.textContent = selectedIndex >= 0 ? element.options[selectedIndex].text : '';
@@ -908,11 +922,9 @@ function createPDFOverlay(element) {
     overlay.style.color = '#1a1d21';
   }
   
-  // Calculate position relative to parent
   const left = rect.left - parentRect.left;
   const top = rect.top - parentRect.top;
   
-  // Position overlay exactly over the element using absolute positioning
   overlay.style.cssText = `
     position: absolute;
     left: ${left}px;
@@ -935,34 +947,26 @@ function createPDFOverlay(element) {
     box-sizing: border-box;
   `;
   
-  // Special handling for different element types
   if (element.closest('.time-cell')) {
     overlay.style.padding = '4px 2px';
   }
-  
   if (element.classList.contains('date-display')) {
     overlay.style.paddingRight = '24px';
   }
-  
   if (element.classList.contains('hrs-input') || element.classList.contains('day-input')) {
     overlay.style.justifyContent = 'center';
   }
-  
   if (element.classList.contains('type-select')) {
     overlay.style.width = '100%';
     overlay.style.padding = '0 4px';
   }
   
-  // For header fields in info-grid
   if (element.closest('.info-cell')) {
-    // Adjust padding to match header style
     overlay.style.padding = '3px 2px';
     overlay.style.borderBottom = '1px solid #c9cdd3';
     overlay.style.borderRadius = '0';
     overlay.style.backgroundColor = 'transparent';
     overlay.style.fontSize = '13px';
-    
-    // For Month/Year selects, preserve flex ratios
     if (element.classList.contains('info-select-month')) {
       overlay.style.width = (rect.width * 1.4) + 'px';
       overlay.style.flex = '1.4';
@@ -971,8 +975,6 @@ function createPDFOverlay(element) {
       overlay.style.width = (rect.width * 0.8) + 'px';
       overlay.style.flex = '0.8';
     }
-    
-    // For the Officer input
     if (element.tagName === 'INPUT' && !element.classList.contains('date-display')) {
       overlay.style.borderBottom = '1px solid #c9cdd3';
     }
@@ -982,24 +984,20 @@ function createPDFOverlay(element) {
 }
 
 async function captureSheetForPDF(sheet) {
-  // Store original elements and their states
   const originalStates = [];
   
-  // Hide interactive elements
   const controls = sheet.querySelectorAll('.row-del, .table-actions, .sig-controls button');
   controls.forEach(el => {
     originalStates.push({ element: el, display: el.style.display });
     el.style.display = 'none';
   });
   
-  // Hide date icons
   const dateIcons = sheet.querySelectorAll('.date-icon');
   dateIcons.forEach(el => {
     originalStates.push({ element: el, display: el.style.display });
     el.style.display = 'none';
   });
   
-  // Make sure parent containers have position:relative for absolute positioning
   const allParents = new Set();
   const elements = sheet.querySelectorAll('input, select');
   elements.forEach(el => {
@@ -1014,41 +1012,23 @@ async function captureSheetForPDF(sheet) {
     }
   });
   
-  // Create overlays for all inputs and selects
   const overlays = [];
-  
   elements.forEach(el => {
-    // Skip hidden or non-visible elements
     if (el.offsetWidth === 0 || el.offsetHeight === 0) return;
-    
-    // Skip the native date input (it's hidden)
     if (el.classList.contains('date-native')) return;
-    
-    // For date display, only create overlay if it has a value
     if (el.classList.contains('date-display') && !el.value) return;
-    
-    // For regular inputs, only create overlay if they have a value
     if (el.tagName === 'INPUT' && !el.classList.contains('date-display') && !el.value) return;
-    
-    // For selects, create overlay if they have a selection
     if (el.tagName === 'SELECT' && !el.value) return;
     
-    // Create the overlay
     const overlay = createPDFOverlay(el);
-    
-    // Store original visibility
     originalStates.push({ element: el, visibility: el.style.visibility });
     el.style.visibility = 'hidden';
-    
-    // Add overlay to parent
     el.parentElement.appendChild(overlay);
     overlays.push(overlay);
   });
   
-  // Wait for DOM to update
   await new Promise(resolve => setTimeout(resolve, 50));
   
-  // Capture with html2canvas
   const canvas = await html2canvas(sheet, {
     scale: 2,
     backgroundColor: '#ffffff',
@@ -1060,10 +1040,7 @@ async function captureSheetForPDF(sheet) {
     windowHeight: sheet.scrollHeight
   });
   
-  // Clean up overlays
   overlays.forEach(overlay => overlay.remove());
-  
-  // Restore original states
   originalStates.forEach(({ element, display, visibility, position }) => {
     if (display !== undefined) element.style.display = display;
     if (visibility !== undefined) element.style.visibility = visibility;
@@ -1091,8 +1068,7 @@ document.getElementById('exportBtn').addEventListener('click', async ()=>{
       const pageW = pdf.internal.pageSize.getWidth();
       const pageH = pdf.internal.pageSize.getHeight();
       
-      // Calculate dimensions to fit the page with margins
-      const margin = 40;
+      const margin = 10;
       const maxW = pageW - (margin * 2);
       const maxH = pageH - (margin * 2);
       
@@ -1100,8 +1076,11 @@ document.getElementById('exportBtn').addEventListener('click', async ()=>{
       const w = canvas.width * ratio;
       const h = canvas.height * ratio;
       
+      const x = (pageW - w) / 2;
+      const y = (pageH - h) / 2;
+      
       if (i > 0) pdf.addPage();
-      pdf.addImage(imgData, 'PNG', (pageW - w) / 2, margin, w, h);
+      pdf.addImage(imgData, 'PNG', x, y, w, h);
     }
 
     pdf.save('Secondary_Employment_Report.pdf');
