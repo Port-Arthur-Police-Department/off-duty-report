@@ -186,7 +186,6 @@
       display:flex;
       align-items:center;
       height:100%;
-      cursor:pointer;
     }
     input.date-display{
       width:100%;
@@ -203,7 +202,8 @@
     input.date-display::placeholder{color:var(--muted);}
     input.date-native{
       position:absolute;
-      inset:0;
+      top:0;
+      left:0;
       width:100%;
       height:100%;
       margin:0;
@@ -478,18 +478,9 @@ function makeRow(){
     <td class="row-del" title="Clear row">✕</td>
   `;
 
-  const dateCell = tr.querySelector('.date-cell');
   const dateNative = tr.querySelector('.date-native');
   const dateDisplay = tr.querySelector('.date-display');
   const dayInput = tr.querySelector('.day-input');
-
-  // Click anywhere in the cell to open the date picker
-  dateCell.addEventListener('click', function(e) {
-    // If the click is not directly on the native input, trigger it
-    // (the native input is invisible but clickable; we just want to ensure it opens)
-    dateNative.focus();
-    dateNative.click();
-  });
 
   dateNative.addEventListener('change', ()=>{
     if (dateNative.value) {
