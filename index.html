@@ -186,6 +186,7 @@
       display:flex;
       align-items:center;
       height:100%;
+      cursor:pointer;
     }
     input.date-display{
       width:100%;
@@ -478,9 +479,24 @@ function makeRow(){
     <td class="row-del" title="Clear row">✕</td>
   `;
 
+  const dateCell = tr.querySelector('.date-cell');
   const dateNative = tr.querySelector('.date-native');
   const dateDisplay = tr.querySelector('.date-display');
   const dayInput = tr.querySelector('.day-input');
+
+  // Click anywhere in the cell to open the date picker
+  dateCell.addEventListener('click', function(e) {
+    // If the click is directly on the native input, let it handle natively.
+    // Otherwise, programmatically open the picker.
+    if (e.target !== dateNative) {
+      // Use showPicker() if available (modern browsers), else fallback to click()
+      if (dateNative.showPicker) {
+        dateNative.showPicker();
+      } else {
+        dateNative.click();
+      }
+    }
+  });
 
   dateNative.addEventListener('change', ()=>{
     if (dateNative.value) {
@@ -888,7 +904,7 @@ document.getElementById('fileInput').addEventListener('change', (e)=>{
 });
 
 // ============================================
-//  PDF EXPORT – Uses print styles
+//  PDF EXPORT – Matches print layout
 // ============================================
 
 function createPDFOverlay(element) {
@@ -977,7 +993,7 @@ async function captureSheetForPDF(sheet) {
   sheet.classList.add('pdf-mode');
   document.body.classList.add('pdf-mode');
 
-  // Hide interactive elements
+  // Hide interactive elements (they are also hidden by CSS, but ensure they are hidden)
   const controls = sheet.querySelectorAll('.row-del, .table-actions, .sig-controls button');
   controls.forEach(el => {
     originalStates.push({ element: el, display: el.style.display });
@@ -1015,6 +1031,7 @@ async function captureSheetForPDF(sheet) {
     overlays.push(overlay);
   });
   
+  // Small delay to let styles apply
   await new Promise(resolve => setTimeout(resolve, 50));
   
   // Capture with html2canvas
@@ -1080,7 +1097,7 @@ document.getElementById('exportBtn').addEventListener('click', async ()=>{
     }
 
     pdf.save('Secondary_Employment_Report.pdf');
-    alert('✅ PDF exported successfully!');
+    alert('✅ PDF exported with print layout!');
   } catch (error) {
     console.error('PDF export error:', error);
     alert('❌ Failed to export PDF: ' + error.message);
