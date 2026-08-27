@@ -340,18 +340,6 @@
       border:1px solid var(--line);
       color:var(--muted);
     }
-    .sig-signed-tag{
-      font-size:10.5px;
-      color:#1a7a3d;
-      font-weight:700;
-    }
-
-    .footer-note{
-      text-align:center;
-      font-size:11px;
-      color:var(--muted);
-      margin-top:8px;
-    }
 
     @media print{
       body{background:#fff;padding:0;}
@@ -403,7 +391,7 @@
 const ROWS_PER_PAGE = 25;
 const pagesEl = document.getElementById('pages');
 let pageCount = 0;
-const sigPads = {}; // id -> SignaturePad instance
+const sigPads = {};
 
 function timeOptionsHTML(){
   let html = '<option value="" class="placeholder">--:--</option>';
@@ -495,11 +483,6 @@ function makeRow(){
 }
 
 function updateTotal(sheet){
-  let sum = 0;
-  sheet.querySelectorAll('.hrs-input').forEach(i=>{
-    const v = parseFloat(i.value);
-    if(!isNaN(v)) sum += v;
-  });
   const grand = document.querySelectorAll('.hrs-input');
   let allSum = 0;
   grand.forEach(i=>{ const v=parseFloat(i.value); if(!isNaN(v)) allSum+=v; });
@@ -686,16 +669,9 @@ function collectHeaderData() {
   if (!firstSheet) return {};
   const infoCells = firstSheet.querySelectorAll('.info-cell');
   
-  // Officer is in first info-cell
   const officer = infoCells[0]?.querySelector('input')?.value || '';
-  
-  // Rank is second info-cell
   const rank = infoCells[1]?.querySelector('select')?.value || '';
-  
-  // Division is third info-cell
   const division = infoCells[2]?.querySelector('select')?.value || '';
-  
-  // Month/Year is fourth info-cell
   const month = infoCells[3]?.querySelector('.info-select-month')?.value || '';
   const year = infoCells[3]?.querySelector('.info-select-year')?.value || '';
   
@@ -710,7 +686,6 @@ function getFullState() {
   return { header, pages };
 }
 
-// ---- LOCAL STORAGE (auto-save) ----
 const STORAGE_KEY = 'employmentForm';
 
 function saveToLocalStorage(state) {
@@ -725,38 +700,30 @@ function loadFromLocalStorage() {
   try { return JSON.parse(raw); } catch { return null; }
 }
 
-// ---- APPLY STATE TO UI ----
 function applyState(state) {
-  // Remove all existing pages
   document.querySelectorAll('.sheet').forEach(el => el.remove());
   pageCount = 0;
   for (const key in sigPads) delete sigPads[key];
 
-  // Restore pages
   state.pages.forEach((pageData, idx) => {
     restorePageFromData(pageData, idx);
   });
 
-  // Fill header on first page
   const firstSheet = document.querySelector('.sheet');
   if (firstSheet && state.header) {
     const h = state.header;
     const infoCells = firstSheet.querySelectorAll('.info-cell');
     
     if (infoCells.length >= 4) {
-      // Officer
       const officerInput = infoCells[0]?.querySelector('input');
       if (officerInput) officerInput.value = h.officer || '';
       
-      // Rank
       const rankSelect = infoCells[1]?.querySelector('select');
       if (rankSelect) rankSelect.value = h.rank || '';
       
-      // Division
       const divisionSelect = infoCells[2]?.querySelector('select');
       if (divisionSelect) divisionSelect.value = h.division || '';
       
-      // Month/Year
       const monthSelect = infoCells[3]?.querySelector('.info-select-month');
       const yearSelect = infoCells[3]?.querySelector('.info-select-year');
       if (monthSelect) monthSelect.value = h.month || '';
@@ -764,9 +731,7 @@ function applyState(state) {
     }
   }
 
-  // Recalculate totals
   document.querySelectorAll('.sheet').forEach(sheet => updateTotal(sheet));
-  // Save to localStorage so auto-save picks it up
   saveToLocalStorage(state);
 }
 
@@ -811,7 +776,6 @@ function restorePageFromData(pageData, pageIndex) {
   }
 }
 
-// ---- FILE EXPORT / IMPORT ----
 function exportStateToFile() {
   const state = getFullState();
   const json = JSON.stringify(state, null, 2);
@@ -843,25 +807,18 @@ function importStateFromFile(file) {
   reader.readAsText(file);
 }
 
-// ---- CLEAR ALL ----
 function clearAll() {
   if (!confirm('⚠️ This will delete ALL data. Are you sure?')) return;
   
-  // Remove all pages
   document.querySelectorAll('.sheet').forEach(el => el.remove());
   pageCount = 0;
   for (const key in sigPads) delete sigPads[key];
   
-  // Start fresh with one page
   addPage();
-  
-  // Clear localStorage
   localStorage.removeItem(STORAGE_KEY);
-  
   alert('✅ All data cleared.');
 }
 
-// ---- AUTO-SAVE (localStorage) ----
 function attachAutoSave() {
   document.addEventListener('input', (e) => {
     if (e.target.closest('.sheet')) {
@@ -889,35 +846,30 @@ document.getElementById('addPageBtn').addEventListener('click', addPage);
 document.getElementById('printBtn').addEventListener('click', ()=> window.print());
 document.getElementById('clearBtn').addEventListener('click', clearAll);
 
-// Save Progress -> download JSON file
 document.getElementById('saveBtn').addEventListener('click', ()=>{
   exportStateToFile();
   alert('✅ Progress saved as .json file.');
 });
 
-// Load Progress -> open file picker
 document.getElementById('loadBtn').addEventListener('click', ()=>{
   document.getElementById('fileInput').click();
 });
 
-// Hidden file input for Load
 document.getElementById('fileInput').addEventListener('change', (e)=>{
   if (e.target.files.length > 0) {
     importStateFromFile(e.target.files[0]);
-    e.target.value = ''; // reset so same file can be re-imported
+    e.target.value = '';
   }
 });
 
 // ============================================
-//  PDF EXPORT - FIXED ALIGNMENT
+//  PDF EXPORT - FIXED
 // ============================================
 
 function prepExportOverlays(sheet) {
   const entries = [];
   
-  // Handle ALL inputs - not just selects
   sheet.querySelectorAll('input, select').forEach(el => {
-    // Skip hidden or non-visible elements
     const rect = el.getBoundingClientRect();
     if (rect.width === 0 || rect.height === 0) return;
     
@@ -929,21 +881,17 @@ function prepExportOverlays(sheet) {
       resetPos = true; 
     }
 
-    // Create overlay div
     const div = document.createElement('div');
     
-    // For select elements, show the selected text
     if (el.tagName === 'SELECT') {
       const text = el.selectedIndex >= 0 ? el.options[el.selectedIndex].text : '';
       div.textContent = text;
       div.style.color = el.value === '' ? '#6b7280' : '#1a1d21';
     } else {
-      // For inputs, show the value
       div.textContent = el.value || '';
       div.style.color = '#1a1d21';
     }
     
-    // Copy computed styles
     const cs = window.getComputedStyle(el);
     div.style.position = 'absolute';
     div.style.inset = '0';
@@ -964,15 +912,105 @@ function prepExportOverlays(sheet) {
     div.style.width = '100%';
     div.style.height = '100%';
     
-    // Hide the original element
     el.style.visibility = 'hidden';
     parent.appendChild(div);
     
     entries.push({ div, el, parent, resetPos });
   });
 
-  // Also handle the date display separately
+  // Also handle date display
   sheet.querySelectorAll('.date-display').forEach(el => {
     const parent = el.parentElement;
     const parentPos = window.getComputedStyle(parent).position;
-    let resetPos =
+    let resetPos = false;
+    if (parentPos === 'static') { 
+      parent.style.position = 'relative'; 
+      resetPos = true; 
+    }
+    
+    const div = document.createElement('div');
+    div.textContent = el.value || '';
+    const cs = window.getComputedStyle(el);
+    div.style.position = 'absolute';
+    div.style.inset = '0';
+    div.style.display = 'flex';
+    div.style.alignItems = 'center';
+    div.style.justifyContent = 'flex-start';
+    div.style.font = cs.font;
+    div.style.fontSize = cs.fontSize;
+    div.style.padding = cs.padding;
+    div.style.background = 'transparent';
+    div.style.whiteSpace = 'nowrap';
+    div.style.overflow = 'hidden';
+    div.style.textOverflow = 'ellipsis';
+    div.style.pointerEvents = 'none';
+    div.style.boxSizing = 'border-box';
+    div.style.width = '100%';
+    div.style.height = '100%';
+    div.style.color = '#1a1d21';
+    
+    el.style.visibility = 'hidden';
+    parent.appendChild(div);
+    entries.push({ div, el, parent, resetPos });
+  });
+
+  return entries;
+}
+
+function restoreExportOverlays(entries) {
+  entries.forEach(({div, el, parent, resetPos}) => {
+    div.remove();
+    el.style.visibility = '';
+    if(resetPos) parent.style.position = '';
+  });
+}
+
+document.getElementById('exportBtn').addEventListener('click', async ()=>{
+  const btn = document.getElementById('exportBtn');
+  const origText = btn.textContent;
+  btn.textContent = 'Generating PDF...';
+  btn.disabled = true;
+
+  const { jsPDF } = window.jspdf;
+  const pdf = new jsPDF('p', 'pt', 'letter');
+  const sheets = [...document.querySelectorAll('.sheet')];
+
+  for(let i=0;i<sheets.length;i++){
+    const sheet = sheets[i];
+    const controls = sheet.querySelectorAll('.row-del,.table-actions,.sig-controls');
+    controls.forEach(c=>c.style.visibility='hidden');
+    const entries = prepExportOverlays(sheet);
+
+    const canvas = await html2canvas(sheet, {scale:2, backgroundColor:'#ffffff'});
+
+    restoreExportOverlays(entries);
+    controls.forEach(c=>c.style.visibility='');
+
+    const imgData = canvas.toDataURL('image/png');
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const ratio = Math.min(pageW / canvas.width, pageH / canvas.height);
+    const w = canvas.width * ratio;
+    const h = canvas.height * ratio;
+    if(i>0) pdf.addPage();
+    pdf.addImage(imgData, 'PNG', (pageW-w)/2, 20, w, h - 20);
+  }
+
+  pdf.save('Secondary_Employment_Report.pdf');
+  btn.textContent = origText;
+  btn.disabled = false;
+});
+
+// ---- START ----
+attachAutoSave();
+
+const saved = loadFromLocalStorage();
+if (saved) {
+  applyState(saved);
+} else {
+  addPage();
+}
+</script>
+
+</body>
+</html>
