@@ -218,6 +218,7 @@
       font-family:inherit;
       color-scheme:light;
       box-sizing:border-box;
+      pointer-events:none;  /* <-- key fix: clicks pass to the parent cell */
     }
     tbody td input:focus{background:#fbfcfe;}
     tbody tr:hover td{background:#fafbfc;}
@@ -339,7 +340,7 @@
       color:var(--muted);
     }
 
-    /* ===== PRINT STYLES (also used by PDF export) ===== */
+    /* ===== PRINT STYLES ===== */
     @media print {
       body{background:#fff;padding:0;}
       .toolbar{display:none;}
@@ -454,7 +455,7 @@ function makeRow(){
   const tr = document.createElement('tr');
   tr.innerHTML = `
     <td class="date-cell">
-      <input type="text" class="date-display" placeholder=" " readonly tabindex="-1">
+      <input type="text" class="date-display" placeholder="--/--/--" readonly tabindex="-1">
       <input type="date" class="date-native" aria-label="Date worked">
     </td>
     <td><input type="text" class="day-input" placeholder="--" readonly tabindex="-1"></td>
@@ -483,12 +484,13 @@ function makeRow(){
 
   // Click anywhere in the cell to open the date picker
   dateCell.addEventListener('click', function(e) {
-    if (e.target !== dateNative) {
-      if (dateNative.showPicker) {
-        dateNative.showPicker();
-      } else {
-        dateNative.click();
-      }
+    // Prevent default to avoid any native interference
+    e.preventDefault();
+    // Use showPicker if available, otherwise fallback to click()
+    if (dateNative.showPicker) {
+      dateNative.showPicker();
+    } else {
+      dateNative.click();
     }
   });
 
@@ -553,7 +555,7 @@ function addPage(){
       <div class="info-cell">
         <label>Rank:</label>
         <select class="info-select">
-          <option value=""> </option>
+          <option value="">Select...</option>
           <option value="Officer">Officer</option>
           <option value="Sergeant">Sergeant</option>
           <option value="Lieutenant">Lieutenant</option>
