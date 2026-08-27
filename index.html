@@ -388,9 +388,7 @@
     <button class="btn-primary" id="exportBtn">Export as PDF</button>
     <button class="btn-secondary" id="saveBtn">💾 Save Progress</button>
     <button class="btn-secondary" id="loadBtn">📂 Load Progress</button>
-    <!-- optional extra file buttons (they do the same) -->
-    <button class="btn-secondary" id="exportFileBtn" style="display:none;">📤 Export File</button>
-    <button class="btn-secondary" id="importFileBtn" style="display:none;">📥 Import File</button>
+    <button class="btn-danger" id="clearBtn">🗑️ Clear All</button>
   </div>
   <input type="file" id="fileInput" accept=".json" style="display:none">
 </div>
@@ -686,13 +684,22 @@ function collectPageData(sheet) {
 function collectHeaderData() {
   const firstSheet = document.querySelector('.sheet');
   if (!firstSheet) return {};
-  return {
-    officer: firstSheet.querySelector('.info-grid input')?.value || '',
-    rank: firstSheet.querySelector('.info-select:first-of-type')?.value || '',
-    division: firstSheet.querySelector('.info-select:nth-of-type(2)')?.value || '',
-    month: firstSheet.querySelector('.info-select-month')?.value || '',
-    year: firstSheet.querySelector('.info-select-year')?.value || ''
-  };
+  const infoCells = firstSheet.querySelectorAll('.info-cell');
+  
+  // Officer is in first info-cell
+  const officer = infoCells[0]?.querySelector('input')?.value || '';
+  
+  // Rank is second info-cell
+  const rank = infoCells[1]?.querySelector('select')?.value || '';
+  
+  // Division is third info-cell
+  const division = infoCells[2]?.querySelector('select')?.value || '';
+  
+  // Month/Year is fourth info-cell
+  const month = infoCells[3]?.querySelector('.info-select-month')?.value || '';
+  const year = infoCells[3]?.querySelector('.info-select-year')?.value || '';
+  
+  return { officer, rank, division, month, year };
 }
 
 function getFullState() {
@@ -734,14 +741,26 @@ function applyState(state) {
   const firstSheet = document.querySelector('.sheet');
   if (firstSheet && state.header) {
     const h = state.header;
-    const inputs = firstSheet.querySelectorAll('.info-grid input');
-    if (inputs.length) inputs[0].value = h.officer || '';
-    const selects = firstSheet.querySelectorAll('.info-select');
-    if (selects.length >= 4) {
-      selects[0].value = h.rank || '';
-      selects[1].value = h.division || '';
-      selects[2].value = h.month || '';
-      selects[3].value = h.year || '';
+    const infoCells = firstSheet.querySelectorAll('.info-cell');
+    
+    if (infoCells.length >= 4) {
+      // Officer
+      const officerInput = infoCells[0]?.querySelector('input');
+      if (officerInput) officerInput.value = h.officer || '';
+      
+      // Rank
+      const rankSelect = infoCells[1]?.querySelector('select');
+      if (rankSelect) rankSelect.value = h.rank || '';
+      
+      // Division
+      const divisionSelect = infoCells[2]?.querySelector('select');
+      if (divisionSelect) divisionSelect.value = h.division || '';
+      
+      // Month/Year
+      const monthSelect = infoCells[3]?.querySelector('.info-select-month');
+      const yearSelect = infoCells[3]?.querySelector('.info-select-year');
+      if (monthSelect) monthSelect.value = h.month || '';
+      if (yearSelect) yearSelect.value = h.year || '';
     }
   }
 
@@ -805,7 +824,6 @@ function exportStateToFile() {
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
-  console.log('📤 File exported.');
 }
 
 function importStateFromFile(file) {
@@ -823,6 +841,24 @@ function importStateFromFile(file) {
     }
   };
   reader.readAsText(file);
+}
+
+// ---- CLEAR ALL ----
+function clearAll() {
+  if (!confirm('⚠️ This will delete ALL data. Are you sure?')) return;
+  
+  // Remove all pages
+  document.querySelectorAll('.sheet').forEach(el => el.remove());
+  pageCount = 0;
+  for (const key in sigPads) delete sigPads[key];
+  
+  // Start fresh with one page
+  addPage();
+  
+  // Clear localStorage
+  localStorage.removeItem(STORAGE_KEY);
+  
+  alert('✅ All data cleared.');
 }
 
 // ---- AUTO-SAVE (localStorage) ----
@@ -851,11 +887,12 @@ function attachAutoSave() {
 
 document.getElementById('addPageBtn').addEventListener('click', addPage);
 document.getElementById('printBtn').addEventListener('click', ()=> window.print());
+document.getElementById('clearBtn').addEventListener('click', clearAll);
 
 // Save Progress -> download JSON file
 document.getElementById('saveBtn').addEventListener('click', ()=>{
   exportStateToFile();
-  alert('Progress saved as .json file.');
+  alert('✅ Progress saved as .json file.');
 });
 
 // Load Progress -> open file picker
@@ -871,116 +908,71 @@ document.getElementById('fileInput').addEventListener('change', (e)=>{
   }
 });
 
-// Optional extra buttons (hidden by default, but you can enable them)
-document.getElementById('exportFileBtn')?.addEventListener('click', exportStateToFile);
-document.getElementById('importFileBtn')?.addEventListener('click', ()=>{
-  document.getElementById('fileInput').click();
-});
-
 // ============================================
-//  PDF EXPORT
+//  PDF EXPORT - FIXED ALIGNMENT
 // ============================================
 
-function prepExportOverlays(sheet){
+function prepExportOverlays(sheet) {
   const entries = [];
-  sheet.querySelectorAll('select').forEach(sel=>{
-    const cs = window.getComputedStyle(sel);
+  
+  // Handle ALL inputs - not just selects
+  sheet.querySelectorAll('input, select').forEach(el => {
+    // Skip hidden or non-visible elements
+    const rect = el.getBoundingClientRect();
+    if (rect.width === 0 || rect.height === 0) return;
+    
+    const parent = el.parentElement;
+    const parentPos = window.getComputedStyle(parent).position;
+    let resetPos = false;
+    if (parentPos === 'static') { 
+      parent.style.position = 'relative'; 
+      resetPos = true; 
+    }
+
+    // Create overlay div
     const div = document.createElement('div');
-    const text = sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : '';
-    div.textContent = text;
+    
+    // For select elements, show the selected text
+    if (el.tagName === 'SELECT') {
+      const text = el.selectedIndex >= 0 ? el.options[el.selectedIndex].text : '';
+      div.textContent = text;
+      div.style.color = el.value === '' ? '#6b7280' : '#1a1d21';
+    } else {
+      // For inputs, show the value
+      div.textContent = el.value || '';
+      div.style.color = '#1a1d21';
+    }
+    
+    // Copy computed styles
+    const cs = window.getComputedStyle(el);
     div.style.position = 'absolute';
     div.style.inset = '0';
     div.style.display = 'flex';
     div.style.alignItems = 'center';
+    div.style.justifyContent = el.classList.contains('hrs-input') ? 'center' : 'flex-start';
     div.style.font = cs.font;
+    div.style.fontSize = cs.fontSize;
+    div.style.fontWeight = cs.fontWeight;
     div.style.letterSpacing = cs.letterSpacing;
-    div.style.color = sel.value === '' ? '#6b7280' : cs.color;
     div.style.padding = cs.padding;
     div.style.background = 'transparent';
     div.style.whiteSpace = 'nowrap';
     div.style.overflow = 'hidden';
     div.style.textOverflow = 'ellipsis';
     div.style.pointerEvents = 'none';
-
-    const parent = sel.parentElement;
-    const parentPos = window.getComputedStyle(parent).position;
-    let resetPos = false;
-    if(parentPos === 'static'){ parent.style.position = 'relative'; resetPos = true; }
-
-    sel.style.visibility = 'hidden';
+    div.style.boxSizing = 'border-box';
+    div.style.width = '100%';
+    div.style.height = '100%';
+    
+    // Hide the original element
+    el.style.visibility = 'hidden';
     parent.appendChild(div);
-    entries.push({div, sel, parent, resetPos});
+    
+    entries.push({ div, el, parent, resetPos });
   });
 
-  const dateNatives = [...sheet.querySelectorAll('.date-native')];
-  const dateIcons = [...sheet.querySelectorAll('.date-icon')];
-  dateNatives.forEach(el=> el.style.visibility = 'hidden');
-  dateIcons.forEach(el=> el.style.visibility = 'hidden');
-
-  return { entries, dateNatives, dateIcons };
-}
-
-function restoreExportOverlays(state){
-  state.entries.forEach(({div, sel, parent, resetPos})=>{
-    div.remove();
-    sel.style.visibility = '';
-    if(resetPos) parent.style.position = '';
-  });
-  state.dateNatives.forEach(el=> el.style.visibility = '');
-  state.dateIcons.forEach(el=> el.style.visibility = '');
-}
-
-document.getElementById('exportBtn').addEventListener('click', async ()=>{
-  const btn = document.getElementById('exportBtn');
-  const origText = btn.textContent;
-  btn.textContent = 'Generating PDF...';
-  btn.disabled = true;
-
-  const { jsPDF } = window.jspdf;
-  const pdf = new jsPDF('p', 'pt', 'letter');
-  const sheets = [...document.querySelectorAll('.sheet')];
-
-  document.body.classList.add('exporting');
-
-  for(let i=0;i<sheets.length;i++){
-    const sheet = sheets[i];
-    const controls = sheet.querySelectorAll('.row-del,.table-actions,.sig-controls');
-    controls.forEach(c=>c.style.visibility='hidden');
-    const overlayState = prepExportOverlays(sheet);
-
-    const canvas = await html2canvas(sheet, {scale:2, backgroundColor:'#ffffff'});
-
-    restoreExportOverlays(overlayState);
-    controls.forEach(c=>c.style.visibility='');
-
-    const imgData = canvas.toDataURL('image/png');
-    const pageW = pdf.internal.pageSize.getWidth();
-    const pageH = pdf.internal.pageSize.getHeight();
-    const ratio = Math.min(pageW / canvas.width, pageH / canvas.height);
-    const w = canvas.width * ratio;
-    const h = canvas.height * ratio;
-    if(i>0) pdf.addPage();
-    pdf.addImage(imgData, 'PNG', (pageW-w)/2, 20, w, h - 20);
-  }
-
-  document.body.classList.remove('exporting');
-  pdf.save('Secondary_Employment_Report.pdf');
-  btn.textContent = origText;
-  btn.disabled = false;
-});
-
-// ---- START ----
-attachAutoSave();
-
-// Try to load from localStorage first
-const saved = loadFromLocalStorage();
-if (saved) {
-  applyState(saved);
-} else {
-  // Otherwise start with one blank page
-  addPage();
-}
-</script>
-
-</body>
-</html>
+  // Also handle the date display separately
+  sheet.querySelectorAll('.date-display').forEach(el => {
+    const parent = el.parentElement;
+    const parentPos = window.getComputedStyle(parent).position;
+    let resetPos =
