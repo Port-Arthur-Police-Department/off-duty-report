@@ -645,6 +645,61 @@ function renumberPages(){
 document.getElementById('addPageBtn').addEventListener('click', addPage);
 document.getElementById('printBtn').addEventListener('click', ()=> window.print());
 
+function prepExportOverlays(sheet){
+  const entries = [];
+
+  // Replace every <select> with a plain, precisely-aligned text overlay —
+  // native dropdown text/arrow rendering isn't captured accurately by the
+  // PDF snapshot process.
+  sheet.querySelectorAll('select').forEach(sel=>{
+    const cs = window.getComputedStyle(sel);
+    const div = document.createElement('div');
+    const text = sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : '';
+    div.textContent = text;
+    div.style.position = 'absolute';
+    div.style.inset = '0';
+    div.style.display = 'flex';
+    div.style.alignItems = 'center';
+    div.style.font = cs.font;
+    div.style.letterSpacing = cs.letterSpacing;
+    div.style.color = sel.value === '' ? '#6b7280' : cs.color;
+    div.style.padding = cs.padding;
+    div.style.background = 'transparent';
+    div.style.whiteSpace = 'nowrap';
+    div.style.overflow = 'hidden';
+    div.style.textOverflow = 'ellipsis';
+    div.style.pointerEvents = 'none';
+
+    const parent = sel.parentElement;
+    const parentPos = window.getComputedStyle(parent).position;
+    let resetPos = false;
+    if(parentPos === 'static'){ parent.style.position = 'relative'; resetPos = true; }
+
+    sel.style.visibility = 'hidden';
+    parent.appendChild(div);
+    entries.push({div, sel, parent, resetPos});
+  });
+
+  // Hide the invisible native date-picker control and its decorative icon —
+  // the formatted text field (date-display) already shows the chosen date.
+  const dateNatives = [...sheet.querySelectorAll('.date-native')];
+  const dateIcons = [...sheet.querySelectorAll('.date-icon')];
+  dateNatives.forEach(el=> el.style.visibility = 'hidden');
+  dateIcons.forEach(el=> el.style.visibility = 'hidden');
+
+  return { entries, dateNatives, dateIcons };
+}
+
+function restoreExportOverlays(state){
+  state.entries.forEach(({div, sel, parent, resetPos})=>{
+    div.remove();
+    sel.style.visibility = '';
+    if(resetPos) parent.style.position = '';
+  });
+  state.dateNatives.forEach(el=> el.style.visibility = '');
+  state.dateIcons.forEach(el=> el.style.visibility = '');
+}
+
 document.getElementById('exportBtn').addEventListener('click', async ()=>{
   const btn = document.getElementById('exportBtn');
   const origText = btn.textContent;
@@ -662,8 +717,11 @@ document.getElementById('exportBtn').addEventListener('click', async ()=>{
     const sheet = sheets[i];
     const controls = sheet.querySelectorAll('.row-del,.table-actions,.sig-controls');
     controls.forEach(c=>c.style.visibility='hidden');
+    const overlayState = prepExportOverlays(sheet);
 
     const canvas = await html2canvas(sheet, {scale:2, backgroundColor:'#ffffff'});
+
+    restoreExportOverlays(overlayState);
     controls.forEach(c=>c.style.visibility='');
 
     const imgData = canvas.toDataURL('image/png');
