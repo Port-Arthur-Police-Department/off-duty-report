@@ -436,7 +436,7 @@ function makeRow(){
       <select class="time-end">${TIME_OPTIONS_HTML}</select>
     </td>
     <td><input type="text" class="hrs-input" placeholder="" readonly tabindex="-1"></td>
-    <td class="row-del" title="Delete row">✕</td>
+    <td class="row-del" title="Clear row">✕</td>
   `;
 
   const dateDisplay = tr.querySelector('.date-display');
@@ -447,11 +447,9 @@ function makeRow(){
   });
 
   tr.querySelector('.row-del').addEventListener('click', ()=>{
+    tr.querySelectorAll('input').forEach(i=>i.value='');
+    tr.querySelectorAll('select').forEach(s=>s.value='');
     const sheet = tr.closest('.sheet');
-    const tbody = tr.closest('tbody');
-    tr.remove();
-    // keep at least one row in the table
-    if(tbody.children.length === 0) tbody.appendChild(makeRow());
     updateTotal(sheet);
   });
   tr.querySelector('.time-start').addEventListener('change', ()=> computeHours(tr));
@@ -515,9 +513,6 @@ function addPage(){
       </thead>
       <tbody></tbody>
     </table>
-    <div class="table-actions">
-      <button class="btn-secondary add-row-btn">+ Add row</button>
-    </div>
     <div class="total-row">
       <span>Running Total (all pages):</span>
       <span class="val grand-total-val">0.00</span>
@@ -550,10 +545,6 @@ function addPage(){
 
   const tbody = sheet.querySelector('tbody');
   for(let i=0;i<ROWS_PER_PAGE;i++) tbody.appendChild(makeRow());
-
-  sheet.querySelector('.add-row-btn').addEventListener('click', ()=>{
-    tbody.appendChild(makeRow());
-  });
 
   const removeBtn = sheet.querySelector('.remove-page-btn');
   if(removeBtn){
