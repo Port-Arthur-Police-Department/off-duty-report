@@ -406,7 +406,7 @@ function makeRow(){
       <select class="time-end">${TIME_OPTIONS_HTML}</select>
     </td>
     <td><input type="text" class="hrs-input" placeholder="" readonly tabindex="-1"></td>
-    <td class="row-del" title="Clear row">✕</td>
+    <td class="row-del" title="Delete row">✕</td>
   `;
 
   const dateDisplay = tr.querySelector('.date-display');
@@ -427,9 +427,12 @@ function makeRow(){
   });
 
   tr.querySelector('.row-del').addEventListener('click', ()=>{
-    tr.querySelectorAll('input').forEach(i=>i.value='');
-    tr.querySelectorAll('select').forEach(s=>s.value='');
-    updateTotal(tr.closest('.sheet'));
+    const sheet = tr.closest('.sheet');
+    const tbody = tr.closest('tbody');
+    tr.remove();
+    // keep at least one row in the table
+    if(tbody.children.length === 0) tbody.appendChild(makeRow());
+    updateTotal(sheet);
   });
   tr.querySelector('.time-start').addEventListener('change', ()=> computeHours(tr));
   tr.querySelector('.time-end').addEventListener('change', ()=> computeHours(tr));
