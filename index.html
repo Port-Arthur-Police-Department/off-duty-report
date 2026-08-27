@@ -108,6 +108,22 @@
     font-family:inherit;
   }
   .info-cell input:focus{border-bottom-color:var(--accent);}
+  .info-cell select.info-select{
+    border:none;
+    border-bottom:1px solid var(--line);
+    outline:none;
+    font-size:13px;
+    padding:3px 2px;
+    flex:1;
+    background:transparent;
+    font-family:inherit;
+    color:var(--ink);
+    cursor:pointer;
+    min-width:0;
+  }
+  .info-cell select.info-select:focus{border-bottom-color:var(--accent);}
+  .info-cell select.info-select-month{flex:1.4;}
+  .info-cell select.info-select-year{flex:0.8;}
 
   table{
     width:100%;
@@ -391,6 +407,16 @@ function timeOptionsHTML(){
 }
 const TIME_OPTIONS_HTML = timeOptionsHTML();
 
+function yearOptionsHTML(){
+  const current = new Date().getFullYear();
+  let html = '<option value="">Year...</option>';
+  for(let y = current - 2; y <= current + 2; y++){
+    const selected = y === current ? ' selected' : '';
+    html += `<option value="${y}"${selected}>${y}</option>`;
+  }
+  return html;
+}
+
 function computeHours(tr){
   const startSel = tr.querySelector('.time-start');
   const endSel = tr.querySelector('.time-end');
@@ -498,9 +524,45 @@ function addPage(){
     ${isFirst ? `
     <div class="info-grid">
       <div class="info-cell"><label>Officer:</label><input type="text"></div>
-      <div class="info-cell"><label>Rank:</label><input type="text"></div>
-      <div class="info-cell"><label>Division:</label><input type="text"></div>
-      <div class="info-cell"><label>Month / Year:</label><input type="text"></div>
+      <div class="info-cell">
+        <label>Rank:</label>
+        <select class="info-select">
+          <option value="">Select...</option>
+          <option value="Officer">Officer</option>
+          <option value="Sergeant">Sergeant</option>
+          <option value="Lieutenant">Lieutenant</option>
+          <option value="Deputy Chief">Deputy Chief</option>
+          <option value="Chief">Chief</option>
+        </select>
+      </div>
+      <div class="info-cell">
+        <label>Division:</label>
+        <select class="info-select">
+          <option value="">Select...</option>
+          <option value="Field Operations">Field Operations</option>
+          <option value="Criminal Investigations">Criminal Investigations</option>
+          <option value="Administration">Administration</option>
+        </select>
+      </div>
+      <div class="info-cell">
+        <label>Month / Year:</label>
+        <select class="info-select info-select-month">
+          <option value="">Month...</option>
+          <option value="January">January</option>
+          <option value="February">February</option>
+          <option value="March">March</option>
+          <option value="April">April</option>
+          <option value="May">May</option>
+          <option value="June">June</option>
+          <option value="July">July</option>
+          <option value="August">August</option>
+          <option value="September">September</option>
+          <option value="October">October</option>
+          <option value="November">November</option>
+          <option value="December">December</option>
+        </select>
+        <select class="info-select info-select-year">${yearOptionsHTML()}</select>
+      </div>
     </div>` : ''}
     <table>
       <colgroup>
