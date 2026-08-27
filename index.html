@@ -207,7 +207,7 @@
       width:100%;
       height:100%;
       margin:0;
-      padding:0 6px;
+      padding:0;
       border:none;
       background:transparent;
       opacity:0;
@@ -216,6 +216,7 @@
       font-size:12.5px;
       font-family:inherit;
       color-scheme:light;
+      box-sizing:border-box;
     }
     tbody td input:focus{background:#fbfcfe;}
     tbody tr:hover td{background:#fafbfc;}
@@ -482,12 +483,12 @@ function makeRow(){
   const dateDisplay = tr.querySelector('.date-display');
   const dayInput = tr.querySelector('.day-input');
 
-  // Click anywhere in the date cell to open the date picker
+  // Click anywhere in the cell to open the date picker
   dateCell.addEventListener('click', function(e) {
-    // If the click is not directly on the date-native input, trigger it
-    if (e.target !== dateNative) {
-      dateNative.click();
-    }
+    // If the click is not directly on the native input, trigger it
+    // (the native input is invisible but clickable; we just want to ensure it opens)
+    dateNative.focus();
+    dateNative.click();
   });
 
   dateNative.addEventListener('change', ()=>{
