@@ -109,16 +109,16 @@
       margin:0 0 24px;
     }
     .sheet-logo{
-      object-fit:contain;
       flex-shrink:0;
+      width:auto;
     }
     .sheet-logo-badge{
       height:125px;
-      width:125px;
+      max-width:125px;
     }
     .sheet-logo-patch{
       height:100px;
-      width:100px;
+      max-width:100px;
     }
     h1{
       flex:1;
@@ -427,8 +427,8 @@
       .sig-block{padding:5px 8px 6px;}
       .total-row{padding:3px 10px;font-size:11px;}
       h1{font-size:16px;margin:0;}
-      .sheet-logo-badge{height:90px;width:90px;}
-      .sheet-logo-patch{height:72px;width:72px;}
+      .sheet-logo-badge{height:90px;max-width:90px;}
+      .sheet-logo-patch{height:72px;max-width:72px;}
       .sheet-header{margin-bottom:10px;}
       .sheet .page-tag{top:6px;right:10px;font-size:8px;}
     }
@@ -438,8 +438,8 @@
       .info-grid{grid-template-columns:1fr;}
       .info-cell:nth-child(odd){border-right:none;}
       .sig-section{grid-template-columns:1fr;}
-      .sheet-logo-badge{height:50px;width:50px;}
-      .sheet-logo-patch{height:40px;width:40px;}
+      .sheet-logo-badge{height:50px;max-width:50px;}
+      .sheet-logo-patch{height:40px;max-width:40px;}
     }
 
     /* Used only while capturing a page for "Export as PDF". Mirrors the
@@ -465,8 +465,8 @@
     .sheet.pdf-capture .time-cell select{font-size:9px !important;padding:1px !important;}
     .sheet.pdf-capture .total-row{padding:3px 10px !important;font-size:11px !important;}
     .sheet.pdf-capture h1{font-size:16px !important;margin:0 !important;}
-    .sheet.pdf-capture .sheet-logo-badge{height:90px !important;width:90px !important;}
-    .sheet.pdf-capture .sheet-logo-patch{height:72px !important;width:72px !important;}
+    .sheet.pdf-capture .sheet-logo-badge{height:90px !important;width:auto !important;max-width:90px !important;}
+    .sheet.pdf-capture .sheet-logo-patch{height:72px !important;width:auto !important;max-width:72px !important;}
     .sheet.pdf-capture .sheet-header{margin-bottom:10px !important;}
   </style>
 </head>
