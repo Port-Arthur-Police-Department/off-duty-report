@@ -229,6 +229,8 @@
     }
     tbody td select.type-select:focus{background:#fbfcfe;}
     tbody td select.type-select option.placeholder{color:var(--muted);}
+
+    /* --- DATE CELL: full clickable area --- */
     .date-cell{
       position:relative;
       display:flex;
@@ -252,12 +254,12 @@
       display:block;
     }
     input.date-display::placeholder{color:var(--muted);}
+    /* The invisible date input now covers the entire cell */
     input.date-native{
       position:absolute;
-      top:0;
-      left:0;
-      width:100%;
-      height:var(--row-h);
+      inset:0;
+      width:auto;
+      height:auto;
       margin:0;
       padding:0;
       border:none;
@@ -270,6 +272,8 @@
       color-scheme:light;
       box-sizing:border-box;
     }
+    /* ----- */
+
     tbody td input:focus{background:#fbfcfe;}
     tbody tr:hover td{background:#fafbfc;}
     .row-del{
@@ -477,7 +481,8 @@
   <div class="btn-group">
     <button class="btn-secondary" id="addPageBtn">+ Add Page (20 rows)</button>
     <button class="btn-secondary" id="printBtn">🖨️ Print</button>
-    <button class="btn-primary" id="exportBtn">⬇️ Export as PDF</button>
+    <!-- The Export as PDF button is commented out for now. Uncomment to re-enable. -->
+    <!-- <button class="btn-primary" id="exportBtn">⬇️ Export as PDF</button> -->
     <button class="btn-secondary" id="saveBtn">💾 Save Progress</button>
     <button class="btn-secondary" id="loadBtn">📂 Load Progress</button>
     <button class="btn-danger" id="clearBtn">🗑️ Clear All</button>
@@ -577,15 +582,9 @@ function makeRow(){
   const dateNative = tr.querySelector('.date-native');
   const dateDisplay = tr.querySelector('.date-display');
   const dayInput = tr.querySelector('.day-input');
-  const dateCell = tr.querySelector('.date-cell');
 
-  // --- Make the whole cell clickable for the date picker ---
-  dateCell.addEventListener('click', function(e) {
-    // If the click is not directly on the date-native input, trigger it.
-    if (e.target !== dateNative) {
-      dateNative.click();
-    }
-  });
+  // No extra click handler needed — the date input covers the whole cell via CSS (inset:0)
+  // and the cell's cursor:pointer gives visual feedback.
 
   dateNative.addEventListener('change', ()=>{
     if (dateNative.value) {
@@ -982,16 +981,12 @@ function showSaveNote(msg, type){
 
 // ============================================
 //  PDF EXPORT — dedicated auto-download, distinct from Print
+//  (Commented out along with the button. Uncomment both to re-enable.)
 // ============================================
-
+/*
 function prepExportOverlays(sheet){
   const entries = [];
 
-  // Replace every <select> with a plain text element that takes the exact
-  // same flex slot in the row — native dropdown rendering isn't captured
-  // accurately by the PDF snapshot process, and an absolutely-positioned
-  // overlay would cover sibling elements (like the "Rank:" label) instead
-  // of just the dropdown itself.
   sheet.querySelectorAll('select').forEach(sel=>{
     const div = document.createElement('div');
     const text = sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : '';
@@ -1040,16 +1035,11 @@ function prepExportOverlays(sheet){
       div.style.justifyContent = 'flex-start';
     }
 
-    // Insert the replacement in the exact same spot in the flex row, then
-    // fully remove the select from layout (display:none, not just hidden)
-    // so it doesn't reserve extra space alongside the new element.
     sel.parentElement.insertBefore(div, sel);
     sel.style.display = 'none';
     entries.push({div, sel});
   });
 
-  // Hide the invisible native date-picker control — the formatted text
-  // field (date-display) already shows the chosen date.
   const dateNatives = [...sheet.querySelectorAll('.date-native')];
   dateNatives.forEach(el=> el.style.visibility = 'hidden');
 
@@ -1073,8 +1063,8 @@ async function exportAsPDF(){
   try{
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p', 'pt', 'letter');
-    const pageW = pdf.internal.pageSize.getWidth();   // 612pt
-    const pageH = pdf.internal.pageSize.getHeight();  // 792pt
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
     const sheets = [...document.querySelectorAll('.sheet')];
 
     for(let i=0;i<sheets.length;i++){
@@ -1083,9 +1073,6 @@ async function exportAsPDF(){
       controls.forEach(c=>c.style.visibility='hidden');
       const overlayState = prepExportOverlays(sheet);
 
-      // Force the same compact, two-column layout the print stylesheet
-      // uses (already verified to fit one page) — regardless of the
-      // device's actual screen size — so captures are always consistent.
       sheet.classList.add('pdf-capture');
 
       const canvas = await html2canvas(sheet, {
@@ -1101,13 +1088,7 @@ async function exportAsPDF(){
 
       const imgData = canvas.toDataURL('image/png');
 
-      // Always preserve the true aspect ratio — scale down uniformly to
-      // fit within the page (minus a consistent margin on every side),
-      // then center. Fitting to the page's raw edges caused margin to
-      // land on only one axis (e.g. full-bleed left/right, letterboxed
-      // top/bottom), which read as a horizontal stretch — a fixed margin
-      // on all four sides fixes that and looks like a normal document.
-      const MARGIN = 36; // 0.5in
+      const MARGIN = 36;
       const availW = pageW - MARGIN * 2;
       const availH = pageH - MARGIN * 2;
       const scale = Math.min(availW / canvas.width, availH / canvas.height);
@@ -1129,6 +1110,7 @@ async function exportAsPDF(){
   btn.textContent = origText;
   btn.disabled = false;
 }
+*/
 
 // ============================================
 //  BUTTON BINDINGS
@@ -1136,7 +1118,8 @@ async function exportAsPDF(){
 
 document.getElementById('addPageBtn').addEventListener('click', addPage);
 document.getElementById('printBtn').addEventListener('click', ()=> window.print());
-document.getElementById('exportBtn').addEventListener('click', exportAsPDF);
+// The Export button is commented out, so we comment out its listener too.
+// document.getElementById('exportBtn').addEventListener('click', exportAsPDF);
 document.getElementById('clearBtn').addEventListener('click', clearAll);
 
 document.getElementById('saveBtn').addEventListener('click', ()=>{
