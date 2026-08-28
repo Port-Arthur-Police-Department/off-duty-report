@@ -4,6 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Secondary Employment Report</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Secondary Employment">
+  <meta name="theme-color" content="#1e3a5f">
   <style>
     :root{
       --ink:#1a1d21;
@@ -39,25 +46,6 @@
       align-items:center;
       justify-content:center;
       gap:14px;
-    }
-    .toolbar-logo{
-      height:40px;
-      width:40px;
-      object-fit:contain;
-      border-radius:4px;
-      flex-shrink:0;
-    }
-    .toolbar-logo.missing{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      background:var(--accent-soft);
-      color:var(--muted);
-      font-size:8px;
-      text-align:center;
-      border:1px dashed var(--line);
-      line-height:1.2;
-      padding:2px;
     }
     .toolbar-title{
       font-size:13px;
@@ -113,12 +101,12 @@
       font-size:11px;
       color:var(--muted);
     }
-    .sheet-letterhead{
+    .sheet-header{
       display:flex;
       align-items:center;
       justify-content:space-between;
-      margin-bottom:6px;
-      min-height:44px;
+      gap:14px;
+      margin:0 0 20px;
     }
     .sheet-logo{
       height:44px;
@@ -127,10 +115,12 @@
       flex-shrink:0;
     }
     h1{
+      flex:1;
       text-align:center;
       font-size:22px;
       letter-spacing:.01em;
-      margin:0 0 20px;
+      margin:0;
+      line-height:44px;
     }
     h1 .cont{font-weight:400;color:var(--muted);font-size:16px;}
 
@@ -424,7 +414,8 @@
       .sig-section{margin-top:14px;gap:12px;}
       .sig-block{padding:6px 10px 8px;}
       .total-row{padding:4px 10px;font-size:12px;}
-      h1{font-size:18px;margin:0 0 12px;}
+      h1{font-size:18px;margin:0;line-height:32px;}
+      .sheet-logo{height:32px;width:32px;}
       .sheet .page-tag{top:8px;right:12px;font-size:9px;}
     }
 
@@ -433,7 +424,6 @@
       .info-grid{grid-template-columns:1fr;}
       .info-cell:nth-child(odd){border-right:none;}
       .sig-section{grid-template-columns:1fr;}
-      .toolbar-logo{height:32px;width:32px;}
     }
 
     /* Applied only during PDF export, on the real DOM (no window/iframe
@@ -453,9 +443,7 @@
 
 <div class="toolbar">
   <div class="toolbar-header">
-    <img class="toolbar-logo" id="logoLeft" src="badge.png" alt="Badge">
     <div class="toolbar-title">Secondary Employment Report — Digital</div>
-    <img class="toolbar-logo" id="logoRight" src="patch.png" alt="Patch">
   </div>
   <div class="btn-group">
     <button class="btn-secondary" id="addPageBtn">+ Add Page (20 rows)</button>
@@ -477,17 +465,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
-// ============================================
-//  LOGO FALLBACKS
-// ============================================
-function handleLogoFallback(img, label){
-  img.addEventListener('error', ()=>{
-    img.outerHTML = `<div class="toolbar-logo missing" title="Place ${img.getAttribute('src')} next to this HTML file">${label}</div>`;
-  });
-}
-handleLogoFallback(document.getElementById('logoLeft'), 'badge.png');
-handleLogoFallback(document.getElementById('logoRight'), 'patch.png');
-
 // ============================================
 //  CONFIGURATION – 20 rows per page
 // ============================================
@@ -626,11 +603,11 @@ function addPage(){
 
   sheet.innerHTML = `
     <div class="page-tag">Page ${pid}</div>
-    <div class="sheet-letterhead">
+    <div class="sheet-header">
       <img class="sheet-logo" src="badge.png" alt="" onerror="this.style.visibility='hidden'">
+      <h1>Secondary Employment Report ${isFirst ? '' : '<span class="cont">(Continued)</span>'}</h1>
       <img class="sheet-logo" src="patch.png" alt="" onerror="this.style.visibility='hidden'">
     </div>
-    <h1>Secondary Employment Report ${isFirst ? '' : '<span class="cont">(Continued)</span>'}</h1>
     ${isFirst ? `
     <div class="info-grid">
       <div class="info-cell"><label>Officer:</label><input type="text"></div>
