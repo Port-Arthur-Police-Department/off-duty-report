@@ -113,6 +113,19 @@
       font-size:11px;
       color:var(--muted);
     }
+    .sheet-letterhead{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-bottom:6px;
+      min-height:44px;
+    }
+    .sheet-logo{
+      height:44px;
+      width:44px;
+      object-fit:contain;
+      flex-shrink:0;
+    }
     h1{
       text-align:center;
       font-size:22px;
@@ -263,7 +276,6 @@
       font-family:inherit;
       color-scheme:light;
       box-sizing:border-box;
-      pointer-events:none;  /* clicks pass through to the parent cell */
     }
     tbody td input:focus{background:#fbfcfe;}
     tbody tr:hover td{background:#fafbfc;}
@@ -544,20 +556,9 @@ function makeRow(){
     <td class="row-del" title="Clear row">✕</td>
   `;
 
-  const dateCell = tr.querySelector('.date-cell');
   const dateNative = tr.querySelector('.date-native');
   const dateDisplay = tr.querySelector('.date-display');
   const dayInput = tr.querySelector('.day-input');
-
-  // Click anywhere in the cell to open the date picker
-  dateCell.addEventListener('click', function(e) {
-    e.preventDefault();
-    if (dateNative.showPicker) {
-      dateNative.showPicker();
-    } else {
-      dateNative.click();
-    }
-  });
 
   dateNative.addEventListener('change', ()=>{
     if (dateNative.value) {
@@ -613,6 +614,10 @@ function addPage(){
 
   sheet.innerHTML = `
     <div class="page-tag">Page ${pid}</div>
+    <div class="sheet-letterhead">
+      <img class="sheet-logo" src="badge.png" alt="" onerror="this.style.visibility='hidden'">
+      <img class="sheet-logo" src="patch.png" alt="" onerror="this.style.visibility='hidden'">
+    </div>
     <h1>Secondary Employment Report ${isFirst ? '' : '<span class="cont">(Continued)</span>'}</h1>
     ${isFirst ? `
     <div class="info-grid">
@@ -955,37 +960,65 @@ function showSaveNote(msg, type){
 function prepExportOverlays(sheet){
   const entries = [];
 
-  // Replace every <select> with a plain, precisely-aligned text overlay —
-  // native dropdown text/arrow rendering isn't captured accurately by the
-  // PDF snapshot process.
+  // Replace every <select> with a plain text element that takes the exact
+  // same flex slot in the row — native dropdown rendering isn't captured
+  // accurately by the PDF snapshot process, and an absolutely-positioned
+  // overlay would cover sibling elements (like the "Rank:" label) instead
+  // of just the dropdown itself.
   sheet.querySelectorAll('select').forEach(sel=>{
-    const cs = window.getComputedStyle(sel);
     const div = document.createElement('div');
     const text = sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : '';
     div.textContent = (text || '').trim() === 'Select...' ? '' : text;
-    div.style.position = 'absolute';
-    div.style.inset = '0';
     div.style.display = 'flex';
     div.style.alignItems = 'center';
-    div.style.justifyContent = (sel.classList.contains('time-start') || sel.classList.contains('time-end')) ? 'center' : 'flex-start';
-    div.style.font = cs.font;
-    div.style.letterSpacing = cs.letterSpacing;
-    div.style.color = sel.value === '' ? '#6b7280' : cs.color;
-    div.style.padding = cs.padding;
-    div.style.background = 'transparent';
     div.style.whiteSpace = 'nowrap';
     div.style.overflow = 'hidden';
     div.style.textOverflow = 'ellipsis';
-    div.style.pointerEvents = 'none';
+    div.style.color = sel.value === '' ? '#6b7280' : '#1a1d21';
+    div.style.fontFamily = "'Helvetica Neue',Arial,sans-serif";
+    div.style.boxSizing = 'border-box';
 
-    const parent = sel.parentElement;
-    const parentPos = window.getComputedStyle(parent).position;
-    let resetPos = false;
-    if(parentPos === 'static'){ parent.style.position = 'relative'; resetPos = true; }
+    if(sel.classList.contains('info-select-month')){
+      div.style.flex = '1.4';
+      div.style.fontSize = '13px';
+      div.style.padding = '3px 2px';
+      div.style.justifyContent = 'flex-start';
+    } else if(sel.classList.contains('info-select-year')){
+      div.style.flex = '0.8';
+      div.style.fontSize = '13px';
+      div.style.padding = '3px 2px';
+      div.style.justifyContent = 'flex-start';
+    } else if(sel.classList.contains('info-select')){
+      div.style.flex = '1';
+      div.style.fontSize = '13px';
+      div.style.padding = '3px 2px';
+      div.style.justifyContent = 'flex-start';
+    } else if(sel.classList.contains('type-select')){
+      div.style.width = '100%';
+      div.style.height = '100%';
+      div.style.fontSize = '12.5px';
+      div.style.padding = '0 4px';
+      div.style.justifyContent = 'flex-start';
+    } else if(sel.classList.contains('time-start') || sel.classList.contains('time-end')){
+      div.style.flex = '1';
+      div.style.minWidth = '0';
+      div.style.fontSize = '11.5px';
+      div.style.padding = '0 2px';
+      div.style.justifyContent = 'center';
+      div.style.height = '100%';
+    } else {
+      div.style.flex = '1';
+      div.style.fontSize = '12.5px';
+      div.style.padding = '0 4px';
+      div.style.justifyContent = 'flex-start';
+    }
 
-    sel.style.visibility = 'hidden';
-    parent.appendChild(div);
-    entries.push({div, sel, parent, resetPos});
+    // Insert the replacement in the exact same spot in the flex row, then
+    // fully remove the select from layout (display:none, not just hidden)
+    // so it doesn't reserve extra space alongside the new element.
+    sel.parentElement.insertBefore(div, sel);
+    sel.style.display = 'none';
+    entries.push({div, sel});
   });
 
   // Hide the invisible native date-picker control — the formatted text
@@ -997,10 +1030,9 @@ function prepExportOverlays(sheet){
 }
 
 function restoreExportOverlays(state){
-  state.entries.forEach(({div, sel, parent, resetPos})=>{
+  state.entries.forEach(({div, sel})=>{
     div.remove();
-    sel.style.visibility = '';
-    if(resetPos) parent.style.position = '';
+    sel.style.display = '';
   });
   state.dateNatives.forEach(el=> el.style.visibility = '');
 }
