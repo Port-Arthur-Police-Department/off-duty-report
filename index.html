@@ -425,18 +425,6 @@
       .info-cell:nth-child(odd){border-right:none;}
       .sig-section{grid-template-columns:1fr;}
     }
-
-    /* Applied only during PDF export, on the real DOM (no window/iframe
-       simulation) so capture is always predictable regardless of the
-       actual device screen size. */
-    .sheet.force-desktop{
-      width:900px !important;
-      max-width:none !important;
-      padding:36px 40px 28px !important;
-    }
-    .sheet.force-desktop .info-grid{grid-template-columns:1fr 1fr !important;}
-    .sheet.force-desktop .info-cell:nth-child(odd){border-right:1px solid var(--line-strong) !important;}
-    .sheet.force-desktop .sig-section{grid-template-columns:1fr 1fr !important;}
   </style>
 </head>
 <body>
@@ -461,8 +449,6 @@
 <div id="pages"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/4.1.7/signature_pad.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
 // ============================================
@@ -943,152 +929,17 @@ function showSaveNote(msg, type){
 }
 
 // ============================================
-//  PDF EXPORT (full-page, matches print layout)
+//  PDF EXPORT — uses the browser's native print engine
 // ============================================
-
-function prepExportOverlays(sheet){
-  const entries = [];
-
-  // Replace every <select> with a plain text element that takes the exact
-  // same flex slot in the row — native dropdown rendering isn't captured
-  // accurately by the PDF snapshot process, and an absolutely-positioned
-  // overlay would cover sibling elements (like the "Rank:" label) instead
-  // of just the dropdown itself.
-  sheet.querySelectorAll('select').forEach(sel=>{
-    const div = document.createElement('div');
-    const text = sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : '';
-    div.textContent = (text || '').trim() === 'Select...' ? '' : text;
-    div.style.display = 'flex';
-    div.style.alignItems = 'center';
-    div.style.whiteSpace = 'nowrap';
-    div.style.overflow = 'hidden';
-    div.style.textOverflow = 'ellipsis';
-    div.style.color = sel.value === '' ? '#6b7280' : '#1a1d21';
-    div.style.fontFamily = "'Helvetica Neue',Arial,sans-serif";
-    div.style.boxSizing = 'border-box';
-
-    if(sel.classList.contains('info-select-month')){
-      div.style.flex = '1.4';
-      div.style.fontSize = '13px';
-      div.style.padding = '3px 2px';
-      div.style.justifyContent = 'flex-start';
-    } else if(sel.classList.contains('info-select-year')){
-      div.style.flex = '0.8';
-      div.style.fontSize = '13px';
-      div.style.padding = '3px 2px';
-      div.style.justifyContent = 'flex-start';
-    } else if(sel.classList.contains('info-select')){
-      div.style.flex = '1';
-      div.style.fontSize = '13px';
-      div.style.padding = '3px 2px';
-      div.style.justifyContent = 'flex-start';
-    } else if(sel.classList.contains('type-select')){
-      div.style.width = '100%';
-      div.style.height = '100%';
-      div.style.fontSize = '12.5px';
-      div.style.padding = '0 4px';
-      div.style.justifyContent = 'flex-start';
-    } else if(sel.classList.contains('time-start') || sel.classList.contains('time-end')){
-      div.style.flex = '1';
-      div.style.minWidth = '0';
-      div.style.fontSize = '11.5px';
-      div.style.padding = '0 2px';
-      div.style.justifyContent = 'center';
-      div.style.height = '100%';
-    } else {
-      div.style.flex = '1';
-      div.style.fontSize = '12.5px';
-      div.style.padding = '0 4px';
-      div.style.justifyContent = 'flex-start';
-    }
-
-    // Insert the replacement in the exact same spot in the flex row, then
-    // fully remove the select from layout (display:none, not just hidden)
-    // so it doesn't reserve extra space alongside the new element.
-    sel.parentElement.insertBefore(div, sel);
-    sel.style.display = 'none';
-    entries.push({div, sel});
-  });
-
-  // Hide the invisible native date-picker control — the formatted text
-  // field (date-display) already shows the chosen date.
-  const dateNatives = [...sheet.querySelectorAll('.date-native')];
-  dateNatives.forEach(el=> el.style.visibility = 'hidden');
-
-  return { entries, dateNatives };
-}
-
-function restoreExportOverlays(state){
-  state.entries.forEach(({div, sel})=>{
-    div.remove();
-    sel.style.display = '';
-  });
-  state.dateNatives.forEach(el=> el.style.visibility = '');
-}
-
-async function exportAsPDF(){
-  const btn = document.getElementById('exportBtn');
-  const origText = btn.textContent;
-  btn.textContent = 'Generating PDF...';
-  btn.disabled = true;
-
-  try{
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF('p', 'pt', 'letter');
-    const pageW = pdf.internal.pageSize.getWidth();   // 612pt
-    const pageH = pdf.internal.pageSize.getHeight();  // 792pt
-    const sheets = [...document.querySelectorAll('.sheet')];
-
-    document.body.classList.add('exporting');
-
-    for(let i=0;i<sheets.length;i++){
-      const sheet = sheets[i];
-      const controls = sheet.querySelectorAll('.row-del,.table-actions,.sig-controls');
-      controls.forEach(c=>c.style.visibility='hidden');
-      const overlayState = prepExportOverlays(sheet);
-
-      // Force the real element to a fixed desktop width for the capture —
-      // this reflows the actual DOM (no cloning/simulation), so the result
-      // is always predictable regardless of the device's screen size.
-      sheet.classList.add('force-desktop');
-
-      const canvas = await html2canvas(sheet, {
-        scale: 2,
-        backgroundColor:'#ffffff',
-        useCORS:true
-      });
-
-      sheet.classList.remove('force-desktop');
-      restoreExportOverlays(overlayState);
-      controls.forEach(c=>c.style.visibility='');
-
-      const imgData = canvas.toDataURL('image/png');
-
-      // Fill the entire page edge-to-edge, matching the print layout —
-      // scale to the page width, no side margins.
-      const w = pageW;
-      const h = canvas.height * (pageW / canvas.width);
-
-      if(i>0) pdf.addPage();
-
-      if(h <= pageH){
-        const yOffset = (pageH - h) / 2;
-        pdf.addImage(imgData, 'PNG', 0, yOffset, w, h);
-      } else {
-        pdf.addImage(imgData, 'PNG', 0, 0, w, pageH);
-      }
-    }
-
-    document.body.classList.remove('exporting');
-    pdf.save(`Secondary_Employment_Report_${new Date().toISOString().slice(0,10)}.pdf`);
-    showSaveNote('PDF exported.', 'success');
-  } catch(err){
-    document.body.classList.remove('exporting');
-    showSaveNote('PDF export failed: ' + err.message, 'error');
-  }
-
-  btn.textContent = origText;
-  btn.disabled = false;
+// Earlier versions rendered a canvas "screenshot" of the page and placed
+// it into a generated PDF. That approach kept producing subtle rendering
+// bugs (misaligned dropdowns, missing icons, stretched proportions on
+// some devices) because it's only an approximation of the real layout.
+// Printing to PDF uses the browser's actual rendering engine instead, so
+// it always matches the on-screen layout exactly, with no distortion.
+function exportAsPDF(){
+  showSaveNote('Choose "Save as PDF" as the destination in the print dialog.', 'success');
+  window.print();
 }
 
 // ============================================
