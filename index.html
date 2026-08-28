@@ -230,13 +230,14 @@
     tbody td select.type-select:focus{background:#fbfcfe;}
     tbody td select.type-select option.placeholder{color:var(--muted);}
 
-    /* --- DATE CELL: visible icon aligned to the right --- */
+    /* --- DATE CELL: fully clickable, no visible icon --- */
     .date-cell{
       position:relative;
       display:flex;
       align-items:center;
       height:var(--row-h);
       max-height:var(--row-h);
+      cursor:pointer;
       padding:0;
     }
     input.date-display{
@@ -249,43 +250,46 @@
       font-family:inherit;
       background:transparent;
       color:var(--ink);
-      pointer-events:none; /* Let clicks pass to the native input's icon */
+      pointer-events:none; /* let clicks pass through to the cell */
       display:block;
+      text-align:left;
     }
     input.date-display::placeholder{color:var(--muted);}
 
-    /* Native date input - visible but text hidden, icon visible */
+    /* Native date input – fully invisible but covers the cell */
     input.date-native{
       position:absolute;
       inset:0;
       width:100%;
       height:100%;
       margin:0;
-      padding:0 6px;
+      padding:0;
       border:none;
       background:transparent;
-      opacity:1; /* Fully visible */
-      color:transparent; /* Hide the date text */
+      opacity:0;            /* completely invisible */
       cursor:pointer;
-      z-index:2;
+      z-index:2;            /* sits above the display field */
       font-size:12.5px;
       font-family:inherit;
       color-scheme:light;
       box-sizing:border-box;
-      pointer-events:auto;
-      direction: rtl; /* Moves the calendar icon to the right side */
+      pointer-events:auto;  /* still captures clicks, but we'll also use a cell handler */
     }
-    /* Hide the date text in WebKit browsers (Chrome, Edge, Safari) */
+    /* Hide the calendar icon in WebKit browsers */
+    input.date-native::-webkit-calendar-picker-indicator {
+      display: none;
+      opacity: 0;
+    }
+    /* For Firefox, hide the icon by making the input tiny? Actually we can't hide easily,
+       but since opacity:0 it won't show anyway. */
+    /* Also hide the date text inside the native input */
     input.date-native::-webkit-datetime-edit {
       display: none;
     }
-    /* Ensure the calendar picker icon is visible and on the right */
-    input.date-native::-webkit-calendar-picker-indicator {
-      display: block;
-      opacity: 1;
-      cursor: pointer;
+    /* For Firefox, we can use color:transparent to hide the text */
+    input.date-native {
+      color: transparent;
     }
-    /* For Firefox, the icon is visible by default with color:transparent */
     /* ----- */
 
     tbody td input:focus{background:#fbfcfe;}
@@ -447,8 +451,10 @@
       .sheet-logo-patch{height:72px;max-width:72px;}
       .sheet-header{margin-bottom:10px;}
       .sheet .page-tag{top:6px;right:10px;font-size:8px;}
-      /* Ensure the date icon is not printed */
+      /* Hide the native date input in print */
       input.date-native{display:none;}
+      /* Ensure the displayed date is visible */
+      input.date-display{pointer-events:auto; padding:0 6px;}
     }
 
     @media (max-width:640px){
@@ -486,7 +492,6 @@
     .sheet.pdf-capture .sheet-logo-badge{height:90px !important;width:auto !important;max-width:90px !important;}
     .sheet.pdf-capture .sheet-logo-patch{height:72px !important;width:auto !important;max-width:72px !important;}
     .sheet.pdf-capture .sheet-header{margin-bottom:10px !important;}
-    /* Hide the date input in PDF capture mode so it doesn't overlay the text */
     .sheet.pdf-capture input.date-native{display:none;}
   </style>
 </head>
@@ -600,6 +605,17 @@ function makeRow(){
   const dateNative = tr.querySelector('.date-native');
   const dateDisplay = tr.querySelector('.date-display');
   const dayInput = tr.querySelector('.day-input');
+  const dateCell = tr.querySelector('.date-cell');
+
+  // --- Make the whole cell clickable to open the date picker ---
+  dateCell.addEventListener('click', function(e) {
+    // Use showPicker() if available (modern browsers), else fallback to click()
+    if (dateNative.showPicker) {
+      dateNative.showPicker();
+    } else {
+      dateNative.click();
+    }
+  });
 
   dateNative.addEventListener('change', ()=>{
     if (dateNative.value) {
