@@ -388,6 +388,11 @@
     }
 
     /* ===== PRINT STYLES ===== */
+    @page{
+      size: letter;
+      margin: 0.3in;
+    }
+
     @media print {
       body{background:#fff;padding:0;}
       .toolbar{display:none;}
@@ -397,26 +402,29 @@
         border:none;
         border-radius:0;
         margin:0 auto;
-        page-break-after:always;
         page-break-inside:avoid;
-        padding:24px 30px 16px;
+        padding:12px 20px 10px;
+      }
+      .sheet:not(:last-child){
+        page-break-after:always;
       }
       .row-del,.table-actions,.sig-controls button{display:none;}
       .time-cell select{appearance:none;-webkit-appearance:none;background:transparent;}
       thead th{background:#eee !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
       .total-row{background:#eee !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-      tbody td{height:26px;}
-      tbody td input{font-size:11px;padding:0 4px;}
-      tbody td select.type-select{font-size:11px;padding:0 2px;}
-      .time-cell select{font-size:10px;padding:2px 1px;}
-      .sig-pad-wrap canvas.sig-pad{height:60px;}
-      .info-grid{margin-bottom:14px;}
-      .sig-section{margin-top:14px;gap:12px;}
-      .sig-block{padding:6px 10px 8px;}
-      .total-row{padding:4px 10px;font-size:12px;}
-      h1{font-size:18px;margin:0;line-height:32px;}
-      .sheet-logo{height:32px;width:32px;}
-      .sheet .page-tag{top:8px;right:12px;font-size:9px;}
+      tbody td{height:22px;}
+      tbody td input{font-size:10px;padding:0 4px;}
+      tbody td select.type-select{font-size:10px;padding:0 2px;}
+      .time-cell select{font-size:9px;padding:1px;}
+      .sig-pad-wrap canvas.sig-pad{height:44px;}
+      .info-grid{margin-bottom:10px;}
+      .sig-section{margin-top:10px;gap:10px;}
+      .sig-block{padding:5px 8px 6px;}
+      .total-row{padding:3px 10px;font-size:11px;}
+      h1{font-size:16px;margin:0;line-height:28px;}
+      .sheet-logo{height:28px;width:28px;}
+      .sheet-header{margin-bottom:10px;}
+      .sheet .page-tag{top:6px;right:10px;font-size:8px;}
     }
 
     @media (max-width:640px){
