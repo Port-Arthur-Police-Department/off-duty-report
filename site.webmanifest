@@ -1,6 +1,6 @@
 {
-  "name": "Secondary Employment Report",
-  "short_name": "Sec. Employment",
+  "name": "Off-Duty Report",
+  "short_name": "ODR",
   "start_url": "/off-duty-report/index.html",
   "display": "standalone",
   "background_color": "#f4f5f7",
