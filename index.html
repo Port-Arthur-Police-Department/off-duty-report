@@ -192,8 +192,6 @@
       padding:8px 6px;
       font-weight:700;
     }
-    /* All body cells share one fixed row height so every column — including
-       the date picker column — lines up identically. */
     tbody tr{height:var(--row-h);}
     tbody td{
       border:1px solid var(--line);
@@ -579,6 +577,15 @@ function makeRow(){
   const dateNative = tr.querySelector('.date-native');
   const dateDisplay = tr.querySelector('.date-display');
   const dayInput = tr.querySelector('.day-input');
+  const dateCell = tr.querySelector('.date-cell');
+
+  // --- Make the whole cell clickable for the date picker ---
+  dateCell.addEventListener('click', function(e) {
+    // If the click is not directly on the date-native input, trigger it.
+    if (e.target !== dateNative) {
+      dateNative.click();
+    }
+  });
 
   dateNative.addEventListener('change', ()=>{
     if (dateNative.value) {
