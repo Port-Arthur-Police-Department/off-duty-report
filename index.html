@@ -1,1163 +1,1518 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PAPD - Off-Duty Employment Report</title>
-  <link rel="manifest" href="manifest.webmanifest">
-  <link rel="icon" href="icon.png">
-  <link rel="apple-touch-icon" href="icon.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="Off-Duty Employment">
-  <meta name="theme-color" content="#1e3a5f">
-  <style>
-    :root{
-      --ink:#1a1d21;
-      --paper:#ffffff;
-      --line:#c9cdd3;
-      --line-strong:#1a1d21;
-      --muted:#6b7280;
-      --accent:#1e3a5f;
-      --accent-soft:#eef2f7;
-      --row-h:30px;
-    }
-    *{box-sizing:border-box;}
-    body{
-      font-family:'Helvetica Neue',Arial,sans-serif;
-      color:var(--ink);
-      background:#f4f5f7;
-      margin:0;
-      padding:24px 12px 80px;
-    }
-    .toolbar{
-      max-width:900px;
-      margin:0 auto 20px;
-      display:flex;
-      flex-direction:column;
-      gap:14px;
-      background:var(--paper);
-      border:1px solid var(--line);
-      border-radius:10px;
-      padding:14px 16px;
-    }
-    .toolbar-header{
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      gap:14px;
-    }
-    .toolbar-title{
-      font-size:13px;
-      font-weight:600;
-      color:var(--muted);
-      letter-spacing:.02em;
-      text-transform:uppercase;
-    }
-    .btn-group{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center;}
-    button{
-      font-family:inherit;
-      font-size:13px;
-      font-weight:600;
-      border-radius:7px;
-      border:1px solid transparent;
-      padding:9px 14px;
-      cursor:pointer;
-      transition:filter .12s ease, transform .05s ease;
-    }
-    button:active{transform:translateY(1px);}
-    .btn-primary{background:var(--accent);color:#fff;}
-    .btn-primary:hover{filter:brightness(1.1);}
-    .btn-secondary{background:var(--accent-soft);color:var(--accent);border-color:#d7e0ea;}
-    .btn-secondary:hover{filter:brightness(0.97);}
-    .btn-danger{background:#fff;color:#b3261e;border-color:#f2c9c6;}
-    .btn-danger:hover{background:#fdf1f0;}
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PAPD - Off-Duty Employment Report</title>
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="icon" href="icon.png" />
+    <link rel="apple-touch-icon" href="icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Off-Duty Employment" />
+    <meta name="theme-color" content="#1e3a5f" />
+    <style>
+        /* ── ROOT ── */
+        :root {
+            --ink: #1a1d21;
+            --paper: #ffffff;
+            --line: #c9cdd3;
+            --line-strong: #1a1d21;
+            --muted: #6b7280;
+            --accent: #1e3a5f;
+            --accent-soft: #eef2f7;
+            --row-h: 30px;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            color: var(--ink);
+            background: #f4f5f7;
+            margin: 0;
+            padding: 24px 12px 80px;
+        }
 
-    .save-note{
-      max-width:900px;
-      margin:-10px auto 16px;
-      font-size:12px;
-      color:var(--muted);
-      text-align:right;
-      min-height:16px;
-    }
-    .save-note.success{color:#1a7a3d;}
-    .save-note.error{color:#b3261e;}
+        /* ── TOOLBAR ── */
+        .toolbar {
+            max-width: 900px;
+            margin: 0 auto 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            background: var(--paper);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 14px 16px;
+        }
+        .toolbar-header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 14px;
+        }
+        .toolbar-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--muted);
+            letter-spacing: .02em;
+            text-transform: uppercase;
+        }
+        .btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+        }
+        button {
+            font-family: inherit;
+            font-size: 13px;
+            font-weight: 600;
+            border-radius: 7px;
+            border: 1px solid transparent;
+            padding: 9px 14px;
+            cursor: pointer;
+            transition: filter .12s ease, transform .05s ease;
+        }
+        button:active {
+            transform: translateY(1px);
+        }
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+        }
+        .btn-primary:hover {
+            filter: brightness(1.1);
+        }
+        .btn-secondary {
+            background: var(--accent-soft);
+            color: var(--accent);
+            border-color: #d7e0ea;
+        }
+        .btn-secondary:hover {
+            filter: brightness(0.97);
+        }
+        .btn-danger {
+            background: #fff;
+            color: #b3261e;
+            border-color: #f2c9c6;
+        }
+        .btn-danger:hover {
+            background: #fdf1f0;
+        }
 
-    .sheet{
-      max-width:900px;
-      margin:0 auto 28px;
-      background:var(--paper);
-      border:1px solid var(--line);
-      border-radius:10px;
-      padding:36px 40px 28px;
-      position:relative;
-      page-break-inside:avoid;
-    }
-    .sheet .page-tag{
-      position:absolute;
-      top:14px;
-      right:18px;
-      font-size:11px;
-      color:var(--muted);
-    }
-    .sheet-header{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:14px;
-      margin:0 0 24px;
-    }
-    .sheet-logo{
-      flex-shrink:0;
-      width:auto;
-    }
-    .sheet-logo-badge{
-      height:125px;
-      max-width:125px;
-    }
-    .sheet-logo-patch{
-      height:100px;
-      max-width:100px;
-    }
-    h1{
-      flex:1;
-      text-align:center;
-      font-size:22px;
-      letter-spacing:.01em;
-      margin:0;
-    }
-    h1 .cont{font-weight:400;color:var(--muted);font-size:16px;}
+        .save-note {
+            max-width: 900px;
+            margin: -10px auto 16px;
+            font-size: 12px;
+            color: var(--muted);
+            text-align: right;
+            min-height: 16px;
+        }
+        .save-note.success {
+            color: #1a7a3d;
+        }
+        .save-note.error {
+            color: #b3261e;
+        }
 
-    .info-grid{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      border:1px solid var(--line-strong);
-      border-radius:6px;
-      overflow:hidden;
-      margin-bottom:22px;
-    }
-    .info-cell{
-      border-bottom:1px solid var(--line-strong);
-      padding:8px 10px;
-      display:flex;
-      align-items:center;
-      gap:6px;
-      position:relative;
-    }
-    .info-cell:nth-child(odd){border-right:1px solid var(--line-strong);}
-    .info-cell:nth-last-child(-n+2){border-bottom:none;}
-    .info-cell label{font-size:12px;color:var(--muted);white-space:nowrap;}
-    .info-cell input{
-      border:none;
-      border-bottom:1px solid var(--line);
-      outline:none;
-      font-size:13px;
-      padding:3px 2px;
-      flex:1;
-      background:transparent;
-      font-family:inherit;
-    }
-    .info-cell input:focus{border-bottom-color:var(--accent);}
-    .info-cell select.info-select{
-      border:none;
-      border-bottom:1px solid var(--line);
-      outline:none;
-      font-size:13px;
-      padding:3px 2px;
-      flex:1;
-      background:transparent;
-      font-family:inherit;
-      color:var(--ink);
-      cursor:pointer;
-      min-width:0;
-    }
-    .info-cell select.info-select:focus{border-bottom-color:var(--accent);}
-    .info-cell select.info-select-month{flex:1.4;}
-    .info-cell select.info-select-year{flex:0.8;}
+        /* ── SHEET ── */
+        .sheet {
+            max-width: 900px;
+            margin: 0 auto 28px;
+            background: var(--paper);
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 32px 36px 24px;
+            position: relative;
+            page-break-inside: avoid;
+        }
+        .sheet .page-tag {
+            position: absolute;
+            top: 14px;
+            right: 18px;
+            font-size: 11px;
+            color: var(--muted);
+        }
 
-    table{
-      width:100%;
-      border-collapse:collapse;
-      margin-bottom:4px;
-      table-layout:fixed;
-    }
-    thead th{
-      border:1px solid var(--line-strong);
-      background:var(--accent-soft);
-      font-size:11px;
-      text-transform:uppercase;
-      letter-spacing:.03em;
-      color:var(--accent);
-      padding:8px 6px;
-      font-weight:700;
-    }
-    /* All body cells share one fixed row height so every column — including
-       the date picker column — lines up identically. */
-    tbody tr{height:var(--row-h);}
-    tbody td{
-      border:1px solid var(--line);
-      padding:0;
-      height:var(--row-h);
-      max-height:var(--row-h);
-      position:relative;
-      overflow:hidden;
-    }
-    tbody td input{
-      width:100%;
-      height:var(--row-h);
-      border:none;
-      outline:none;
-      font-size:12.5px;
-      padding:0 6px;
-      font-family:inherit;
-      background:transparent;
-      display:block;
-    }
-    tbody td input.day-input{
-      text-align:center;
-    }
-    tbody td select.type-select{
-      width:100%;
-      height:var(--row-h);
-      border:none;
-      outline:none;
-      font-size:12.5px;
-      padding:0 4px;
-      font-family:inherit;
-      background:transparent;
-      color:var(--ink);
-      cursor:pointer;
-    }
-    tbody td select.type-select:focus{background:#fbfcfe;}
-    tbody td select.type-select option.placeholder{color:var(--muted);}
-    .date-cell{
-      position:relative;
-      display:flex;
-      align-items:center;
-      height:var(--row-h);
-      max-height:var(--row-h);
-      cursor:pointer;
-      padding:0;
-    }
-    input.date-display{
-      width:100%;
-      height:var(--row-h);
-      border:none;
-      outline:none;
-      font-size:12.5px;
-      padding:0 6px;
-      font-family:inherit;
-      background:transparent;
-      color:var(--ink);
-      pointer-events:none;
-      display:block;
-    }
-    input.date-display::placeholder{color:var(--muted);}
-    input.date-native{
-      position:absolute;
-      top:0;
-      left:0;
-      width:100%;
-      height:var(--row-h);
-      margin:0;
-      padding:0;
-      border:none;
-      background:transparent;
-      opacity:0;
-      cursor:pointer;
-      z-index:2;
-      font-size:12.5px;
-      font-family:inherit;
-      color-scheme:light;
-      box-sizing:border-box;
-    }
-    tbody td input:focus{background:#fbfcfe;}
-    tbody tr:hover td{background:#fafbfc;}
-    .row-del{
-      width:26px;
-      text-align:center;
-      color:var(--muted);
-      cursor:pointer;
-      font-size:13px;
-      border:1px solid var(--line);
-      background:#fff;
-    }
-    .row-del:hover{color:#b3261e;}
-    col.c-date{width:10%;}
-    col.c-day{width:10%;}
-    col.c-emp{width:22%;}
-    col.c-type{width:16%;}
-    col.c-time{width:26%;}
-    col.c-hrs{width:10%;}
-    col.c-del{width:26px;}
+        /* ── SHEET HEADER (icons with spacing) ── */
+        .sheet-header {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+            margin: 0 0 20px;
+            padding: 0 8px;
+        }
+        .sheet-logo {
+            flex-shrink: 0;
+            width: auto;
+        }
+        .sheet-logo-badge {
+            height: 110px;
+            max-width: 110px;
+        }
+        .sheet-logo-patch {
+            height: 85px;
+            max-width: 85px;
+        }
+        .sheet-header h1 {
+            flex: 1;
+            text-align: center;
+            font-size: 21px;
+            letter-spacing: .01em;
+            margin: 0;
+            line-height: 1.2;
+        }
+        .sheet-header h1 .cont {
+            font-weight: 400;
+            color: var(--muted);
+            font-size: 16px;
+        }
 
-    .time-cell{
-      display:flex;
-      align-items:center;
-      gap:4px;
-      padding:0 4px;
-      height:var(--row-h);
-    }
-    .time-cell select{
-      flex:1;
-      min-width:0;
-      border:none;
-      outline:none;
-      font-size:11.5px;
-      font-family:inherit;
-      background:transparent;
-      padding:0 2px;
-      color:var(--ink);
-      height:var(--row-h);
-    }
-    .time-cell select:invalid,
-    .time-cell select.placeholder{color:var(--muted);}
-    .time-sep{color:var(--muted);font-size:11px;flex-shrink:0;}
-    input.hrs-input{
-      background:var(--accent-soft) !important;
-      color:var(--accent);
-      font-weight:700;
-      text-align:center;
-      cursor:default;
-    }
+        /* ── INFO GRID ── */
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            border: 1px solid var(--line-strong);
+            border-radius: 6px;
+            overflow: hidden;
+            margin-bottom: 18px;
+        }
+        .info-cell {
+            border-bottom: 1px solid var(--line-strong);
+            padding: 6px 10px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            position: relative;
+            min-height: 32px;
+        }
+        .info-cell:nth-child(odd) {
+            border-right: 1px solid var(--line-strong);
+        }
+        .info-cell:nth-last-child(-n+2) {
+            border-bottom: none;
+        }
+        .info-cell label {
+            font-size: 12px;
+            color: var(--muted);
+            white-space: nowrap;
+        }
+        .info-cell input {
+            border: none;
+            border-bottom: 1px solid var(--line);
+            outline: none;
+            font-size: 13px;
+            padding: 3px 2px;
+            flex: 1;
+            background: transparent;
+            font-family: inherit;
+        }
+        .info-cell input:focus {
+            border-bottom-color: var(--accent);
+        }
+        .info-cell select.info-select {
+            border: none;
+            border-bottom: 1px solid var(--line);
+            outline: none;
+            font-size: 13px;
+            padding: 3px 2px;
+            flex: 1;
+            background: transparent;
+            font-family: inherit;
+            color: var(--ink);
+            cursor: pointer;
+            min-width: 0;
+        }
+        .info-cell select.info-select:focus {
+            border-bottom-color: var(--accent);
+        }
+        .info-cell select.info-select-month {
+            flex: 1.4;
+        }
+        .info-cell select.info-select-year {
+            flex: 0.8;
+        }
 
-    .table-actions{
-      display:flex;
-      justify-content:flex-end;
-      margin:6px 0 0;
-    }
-    .table-actions button{font-size:12px;padding:6px 10px;}
+        /* ── TABLE ── */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 4px;
+            table-layout: fixed;
+        }
+        thead th {
+            border: 1px solid var(--line-strong);
+            background: var(--accent-soft);
+            font-size: 10.5px;
+            text-transform: uppercase;
+            letter-spacing: .03em;
+            color: var(--accent);
+            padding: 6px 5px;
+            font-weight: 700;
+        }
+        tbody tr {
+            height: var(--row-h);
+        }
+        tbody td {
+            border: 1px solid var(--line);
+            padding: 0;
+            height: var(--row-h);
+            max-height: var(--row-h);
+            position: relative;
+            overflow: hidden;
+        }
+        tbody td input {
+            width: 100%;
+            height: var(--row-h);
+            border: none;
+            outline: none;
+            font-size: 12.5px;
+            padding: 0 6px;
+            font-family: inherit;
+            background: transparent;
+            display: block;
+        }
+        tbody td input.day-input {
+            text-align: center;
+        }
+        tbody td select.type-select {
+            width: 100%;
+            height: var(--row-h);
+            border: none;
+            outline: none;
+            font-size: 12px;
+            padding: 0 4px;
+            font-family: inherit;
+            background: transparent;
+            color: var(--ink);
+            cursor: pointer;
+        }
+        tbody td select.type-select:focus {
+            background: #fbfcfe;
+        }
+        tbody td select.type-select option.placeholder {
+            color: var(--muted);
+        }
+        .date-cell {
+            position: relative;
+            display: flex;
+            align-items: center;
+            height: var(--row-h);
+            max-height: var(--row-h);
+            cursor: pointer;
+            padding: 0;
+        }
+        input.date-display {
+            width: 100%;
+            height: var(--row-h);
+            border: none;
+            outline: none;
+            font-size: 12px;
+            padding: 0 4px;
+            font-family: inherit;
+            background: transparent;
+            color: var(--ink);
+            pointer-events: none;
+            display: block;
+        }
+        input.date-display::placeholder {
+            color: var(--muted);
+        }
+        input.date-native {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: var(--row-h);
+            margin: 0;
+            padding: 0;
+            border: none;
+            background: transparent;
+            opacity: 0;
+            cursor: pointer;
+            z-index: 2;
+            font-size: 12px;
+            font-family: inherit;
+            color-scheme: light;
+            box-sizing: border-box;
+        }
+        tbody td input:focus {
+            background: #fbfcfe;
+        }
+        tbody tr:hover td {
+            background: #fafbfc;
+        }
+        .row-del {
+            width: 26px;
+            text-align: center;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 13px;
+            border: 1px solid var(--line);
+            background: #fff;
+        }
+        .row-del:hover {
+            color: #b3261e;
+        }
 
-    .total-row{
-      display:flex;
-      justify-content:flex-end;
-      align-items:center;
-      gap:10px;
-      border:1px solid var(--line-strong);
-      border-top:none;
-      padding:8px 12px;
-      font-size:13px;
-      font-weight:700;
-      background:var(--accent-soft);
-    }
-    .total-row span.val{
-      min-width:60px;
-      text-align:right;
-      color:var(--accent);
-    }
+        /* Column widths – more compact, Type column reduced */
+        col.c-date {
+            width: 9%;
+        }
+        col.c-day {
+            width: 9%;
+        }
+        col.c-emp {
+            width: 20%;
+        }
+        col.c-type {
+            width: 12%;
+        }
+        col.c-time {
+            width: 22%;
+        }
+        col.c-hrs {
+            width: 8%;
+        }
+        col.c-del {
+            width: 26px;
+        }
 
-    .sig-section{
-      margin-top:24px;
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      gap:20px;
-    }
-    .sig-block{
-      border:1px solid var(--line-strong);
-      border-radius:6px;
-      padding:10px 12px 12px;
-    }
-    .sig-block label{
-      font-size:11px;
-      color:var(--muted);
-      text-transform:uppercase;
-      letter-spacing:.03em;
-    }
-    .sig-pad-wrap{
-      border:1px dashed var(--line);
-      border-radius:5px;
-      margin-top:6px;
-      background:#fcfcfd;
-    }
-    canvas.sig-pad{
-      width:100%;
-      height:90px;
-      display:block;
-      touch-action:none;
-      cursor:crosshair;
-    }
-    .sig-controls{
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-top:6px;
-    }
-    .sig-controls small{color:var(--muted);font-size:10.5px;}
-    .sig-controls button{
-      font-size:11px;
-      padding:4px 8px;
-      background:transparent;
-      border:1px solid var(--line);
-      color:var(--muted);
-    }
+        .time-cell {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            padding: 0 3px;
+            height: var(--row-h);
+        }
+        .time-cell select {
+            flex: 1;
+            min-width: 0;
+            border: none;
+            outline: none;
+            font-size: 11px;
+            font-family: inherit;
+            background: transparent;
+            padding: 0 2px;
+            color: var(--ink);
+            height: var(--row-h);
+        }
+        .time-cell select:invalid,
+        .time-cell select.placeholder {
+            color: var(--muted);
+        }
+        .time-sep {
+            color: var(--muted);
+            font-size: 11px;
+            flex-shrink: 0;
+        }
+        input.hrs-input {
+            background: var(--accent-soft) !important;
+            color: var(--accent);
+            font-weight: 700;
+            text-align: center;
+            cursor: default;
+        }
 
-    /* ===== PRINT STYLES ===== */
-    @page{
-      size: letter;
-      margin: 0.3in;
-    }
+        .table-actions {
+            display: flex;
+            justify-content: flex-end;
+            margin: 6px 0 0;
+        }
+        .table-actions button {
+            font-size: 12px;
+            padding: 6px 10px;
+        }
 
-    @media print {
-      body{background:#fff;padding:0;}
-      .toolbar{display:none;}
-      .save-note{display:none;}
-      .sheet{
-        box-shadow:none;
-        border:none;
-        border-radius:0;
-        margin:0 auto;
-        page-break-inside:avoid;
-        padding:12px 20px 10px;
-      }
-      .sheet:not(:last-child){
-        page-break-after:always;
-      }
-      .row-del,.table-actions,.sig-controls button{display:none;}
-      .time-cell select{appearance:none;-webkit-appearance:none;background:transparent;}
-      thead th{background:#eee !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-      .total-row{background:#eee !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-      tbody td{height:22px;}
-      tbody td input{font-size:10px;padding:0 4px;}
-      tbody td select.type-select{font-size:10px;padding:0 2px;}
-      .time-cell select{font-size:9px;padding:1px;}
-      .sig-pad-wrap canvas.sig-pad{height:44px;}
-      .info-grid{margin-bottom:10px;}
-      .sig-section{margin-top:10px;gap:10px;}
-      .sig-block{padding:5px 8px 6px;}
-      .total-row{padding:3px 10px;font-size:11px;}
-      h1{font-size:16px;margin:0;}
-      .sheet-logo-badge{height:90px;max-width:90px;}
-      .sheet-logo-patch{height:72px;max-width:72px;}
-      .sheet-header{margin-bottom:10px;}
-      .sheet .page-tag{top:6px;right:10px;font-size:8px;}
-    }
+        .total-row {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 10px;
+            border: 1px solid var(--line-strong);
+            border-top: none;
+            padding: 6px 12px;
+            font-size: 13px;
+            font-weight: 700;
+            background: var(--accent-soft);
+        }
+        .total-row span.val {
+            min-width: 60px;
+            text-align: right;
+            color: var(--accent);
+        }
 
-    @media (max-width:640px){
-      .sheet{padding:20px 16px;}
-      .info-grid{grid-template-columns:1fr;}
-      .info-cell:nth-child(odd){border-right:none;}
-      .sig-section{grid-template-columns:1fr;}
-      .sheet-logo-badge{height:50px;max-width:50px;}
-      .sheet-logo-patch{height:40px;max-width:40px;}
-    }
+        /* ── SIGNATURES ── */
+        .sig-section {
+            margin-top: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+        }
+        .sig-block {
+            border: 1px solid var(--line-strong);
+            border-radius: 6px;
+            padding: 8px 10px 10px;
+        }
+        .sig-block label {
+            font-size: 11px;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: .03em;
+        }
+        .sig-pad-wrap {
+            border: 1px dashed var(--line);
+            border-radius: 5px;
+            margin-top: 4px;
+            background: #fcfcfd;
+        }
+        canvas.sig-pad {
+            width: 100%;
+            height: 80px;
+            display: block;
+            touch-action: none;
+            cursor: crosshair;
+        }
+        .sig-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 4px;
+        }
+        .sig-controls small {
+            color: var(--muted);
+            font-size: 10px;
+        }
+        .sig-controls button {
+            font-size: 11px;
+            padding: 4px 8px;
+            background: transparent;
+            border: 1px solid var(--line);
+            color: var(--muted);
+        }
 
-    /* Used only while capturing a page for "Export as PDF". Mirrors the
-       compact print sizing above (already verified to fit one page) and
-       forces the two-column desktop layout, regardless of the actual
-       device screen size, so the export is always consistent. */
-    .sheet.pdf-capture{
-      width:900px !important;
-      max-width:none !important;
-      box-shadow:none;
-      border:none;
-      border-radius:0;
-      padding:12px 20px 10px !important;
-    }
-    .sheet.pdf-capture .info-grid{grid-template-columns:1fr 1fr !important;margin-bottom:10px !important;}
-    .sheet.pdf-capture .info-cell:nth-child(odd){border-right:1px solid var(--line-strong) !important;}
-    .sheet.pdf-capture .sig-section{grid-template-columns:1fr 1fr !important;margin-top:10px !important;gap:10px !important;}
-    .sheet.pdf-capture .sig-block{padding:5px 8px 6px !important;}
-    .sheet.pdf-capture .sig-pad-wrap canvas.sig-pad{height:44px !important;}
-    .sheet.pdf-capture tbody td{height:22px !important;}
-    .sheet.pdf-capture tbody td input{font-size:10px !important;padding:0 4px !important;}
-    .sheet.pdf-capture tbody td select.type-select{font-size:10px !important;padding:0 2px !important;}
-    .sheet.pdf-capture .time-cell select{font-size:9px !important;padding:1px !important;}
-    .sheet.pdf-capture .total-row{padding:3px 10px !important;font-size:11px !important;}
-    .sheet.pdf-capture h1{font-size:16px !important;margin:0 !important;}
-    .sheet.pdf-capture .sheet-logo-badge{height:90px !important;width:auto !important;max-width:90px !important;}
-    .sheet.pdf-capture .sheet-logo-patch{height:72px !important;width:auto !important;max-width:72px !important;}
-    .sheet.pdf-capture .sheet-header{margin-bottom:10px !important;}
-  </style>
+        /* ── PRINT STYLES ── */
+        @page {
+            size: letter;
+            margin: 0.35in;
+        }
+
+        @media print {
+            body {
+                background: #fff;
+                padding: 0;
+            }
+            .toolbar,
+            .save-note {
+                display: none;
+            }
+            .sheet {
+                box-shadow: none;
+                border: none;
+                border-radius: 0;
+                margin: 0 auto;
+                page-break-inside: avoid;
+                padding: 6px 10px 4px !important;
+                max-width: 100%;
+            }
+            .sheet:not(:last-child) {
+                page-break-after: always;
+            }
+            .row-del,
+            .table-actions,
+            .sig-controls button {
+                display: none !important;
+            }
+            .time-cell select {
+                appearance: none;
+                -webkit-appearance: none;
+                background: transparent;
+            }
+            thead th {
+                background: #eee !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                padding: 4px 4px !important;
+                font-size: 8.5px !important;
+            }
+            .total-row {
+                background: #eee !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                padding: 3px 8px !important;
+                font-size: 10px !important;
+            }
+            tbody td {
+                height: 17px !important;
+                max-height: 17px !important;
+            }
+            tbody td input {
+                height: 17px !important;
+                font-size: 8.5px !important;
+                padding: 0 3px !important;
+            }
+            tbody td select.type-select {
+                height: 17px !important;
+                font-size: 8.5px !important;
+                padding: 0 2px !important;
+            }
+            .time-cell {
+                height: 17px !important;
+                padding: 0 2px !important;
+                gap: 1px !important;
+            }
+            .time-cell select {
+                height: 17px !important;
+                font-size: 7.5px !important;
+                padding: 0 1px !important;
+            }
+            .time-sep {
+                font-size: 8px !important;
+            }
+            .date-cell {
+                height: 17px !important;
+            }
+            input.date-display {
+                height: 17px !important;
+                font-size: 8.5px !important;
+                padding: 0 2px !important;
+            }
+            input.date-native {
+                height: 17px !important;
+                font-size: 8.5px !important;
+            }
+            .sig-pad-wrap canvas.sig-pad {
+                height: 32px !important;
+            }
+            .info-grid {
+                margin-bottom: 6px !important;
+            }
+            .info-cell {
+                padding: 2px 6px !important;
+                min-height: 22px !important;
+            }
+            .info-cell label {
+                font-size: 8.5px !important;
+            }
+            .info-cell input {
+                font-size: 9px !important;
+                padding: 1px 2px !important;
+            }
+            .info-cell select.info-select {
+                font-size: 9px !important;
+                padding: 1px 2px !important;
+            }
+            .sig-section {
+                margin-top: 6px !important;
+                gap: 8px !important;
+            }
+            .sig-block {
+                padding: 4px 6px 6px !important;
+            }
+            .sig-block label {
+                font-size: 8.5px !important;
+            }
+            .sig-controls small {
+                font-size: 7.5px !important;
+            }
+            .sheet-header {
+                gap: 10px !important;
+                margin: 0 0 6px !important;
+                padding: 0 4px !important;
+            }
+            .sheet-header h1 {
+                font-size: 13px !important;
+            }
+            .sheet-header h1 .cont {
+                font-size: 11px !important;
+            }
+            .sheet-logo-badge {
+                height: 56px !important;
+                max-width: 56px !important;
+            }
+            .sheet-logo-patch {
+                height: 44px !important;
+                max-width: 44px !important;
+            }
+            .sheet .page-tag {
+                top: 2px !important;
+                right: 6px !important;
+                font-size: 7px !important;
+            }
+            .total-row span.val {
+                min-width: 40px !important;
+            }
+            input.hrs-input {
+                font-size: 8.5px !important;
+            }
+            /* hide the 'Remove this page' button in print */
+            .remove-page-btn {
+                display: none !important;
+            }
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 640px) {
+            .sheet {
+                padding: 16px 12px;
+            }
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            .info-cell:nth-child(odd) {
+                border-right: none;
+            }
+            .sig-section {
+                grid-template-columns: 1fr;
+            }
+            .sheet-logo-badge {
+                height: 50px;
+                max-width: 50px;
+            }
+            .sheet-logo-patch {
+                height: 40px;
+                max-width: 40px;
+            }
+            .sheet-header {
+                gap: 10px;
+            }
+            .sheet-header h1 {
+                font-size: 16px;
+            }
+        }
+
+        /* ── PDF CAPTURE (matches print layout) ── */
+        .sheet.pdf-capture {
+            width: 900px !important;
+            max-width: none !important;
+            box-shadow: none !important;
+            border: none !important;
+            border-radius: 0 !important;
+            padding: 6px 10px 4px !important;
+            margin: 0 auto !important;
+        }
+        .sheet.pdf-capture .info-grid {
+            grid-template-columns: 1fr 1fr !important;
+            margin-bottom: 6px !important;
+        }
+        .sheet.pdf-capture .info-cell:nth-child(odd) {
+            border-right: 1px solid var(--line-strong) !important;
+        }
+        .sheet.pdf-capture .sig-section {
+            grid-template-columns: 1fr 1fr !important;
+            margin-top: 6px !important;
+            gap: 8px !important;
+        }
+        .sheet.pdf-capture .sig-block {
+            padding: 4px 6px 6px !important;
+        }
+        .sheet.pdf-capture .sig-pad-wrap canvas.sig-pad {
+            height: 32px !important;
+        }
+        .sheet.pdf-capture tbody td {
+            height: 17px !important;
+        }
+        .sheet.pdf-capture tbody td input {
+            height: 17px !important;
+            font-size: 8.5px !important;
+            padding: 0 3px !important;
+        }
+        .sheet.pdf-capture tbody td select.type-select {
+            height: 17px !important;
+            font-size: 8.5px !important;
+            padding: 0 2px !important;
+        }
+        .sheet.pdf-capture .time-cell {
+            height: 17px !important;
+            padding: 0 2px !important;
+            gap: 1px !important;
+        }
+        .sheet.pdf-capture .time-cell select {
+            height: 17px !important;
+            font-size: 7.5px !important;
+            padding: 0 1px !important;
+        }
+        .sheet.pdf-capture .time-sep {
+            font-size: 8px !important;
+        }
+        .sheet.pdf-capture .date-cell {
+            height: 17px !important;
+        }
+        .sheet.pdf-capture input.date-display {
+            height: 17px !important;
+            font-size: 8.5px !important;
+            padding: 0 2px !important;
+        }
+        .sheet.pdf-capture input.date-native {
+            height: 17px !important;
+            font-size: 8.5px !important;
+        }
+        .sheet.pdf-capture .total-row {
+            padding: 3px 8px !important;
+            font-size: 10px !important;
+        }
+        .sheet.pdf-capture .total-row span.val {
+            min-width: 40px !important;
+        }
+        .sheet.pdf-capture .sheet-header {
+            gap: 10px !important;
+            margin: 0 0 6px !important;
+            padding: 0 4px !important;
+        }
+        .sheet.pdf-capture .sheet-header h1 {
+            font-size: 13px !important;
+        }
+        .sheet.pdf-capture .sheet-header h1 .cont {
+            font-size: 11px !important;
+        }
+        .sheet.pdf-capture .sheet-logo-badge {
+            height: 56px !important;
+            max-width: 56px !important;
+        }
+        .sheet.pdf-capture .sheet-logo-patch {
+            height: 44px !important;
+            max-width: 44px !important;
+        }
+        .sheet.pdf-capture .sheet .page-tag {
+            top: 2px !important;
+            right: 6px !important;
+            font-size: 7px !important;
+        }
+        .sheet.pdf-capture .info-cell {
+            padding: 2px 6px !important;
+            min-height: 22px !important;
+        }
+        .sheet.pdf-capture .info-cell label {
+            font-size: 8.5px !important;
+        }
+        .sheet.pdf-capture .info-cell input {
+            font-size: 9px !important;
+            padding: 1px 2px !important;
+        }
+        .sheet.pdf-capture .info-cell select.info-select {
+            font-size: 9px !important;
+            padding: 1px 2px !important;
+        }
+        .sheet.pdf-capture thead th {
+            padding: 4px 4px !important;
+            font-size: 8.5px !important;
+        }
+        .sheet.pdf-capture .sig-block label {
+            font-size: 8.5px !important;
+        }
+        .sheet.pdf-capture .sig-controls small {
+            font-size: 7.5px !important;
+        }
+        .sheet.pdf-capture input.hrs-input {
+            font-size: 8.5px !important;
+        }
+        .sheet.pdf-capture .row-del,
+        .sheet.pdf-capture .table-actions,
+        .sheet.pdf-capture .sig-controls button,
+        .sheet.pdf-capture .remove-page-btn {
+            display: none !important;
+        }
+        .sheet.pdf-capture .time-cell select {
+            appearance: none;
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        .sheet.pdf-capture thead th {
+            background: #eee !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .sheet.pdf-capture .total-row {
+            background: #eee !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+    </style>
 </head>
 <body>
 
-<div class="toolbar">
-  <div class="toolbar-header">
-    <div class="toolbar-title">Off-Duty Employment Report — Digital</div>
-  </div>
-  <div class="btn-group">
-    <button class="btn-secondary" id="addPageBtn">+ Add Page (20 rows)</button>
-    <button class="btn-secondary" id="printBtn">🖨️ Print</button>
-    <button class="btn-primary" id="exportBtn">⬇️ Export as PDF</button>
-    <button class="btn-secondary" id="saveBtn">💾 Save Progress</button>
-    <button class="btn-secondary" id="loadBtn">📂 Load Progress</button>
-    <button class="btn-danger" id="clearBtn">🗑️ Clear All</button>
-  </div>
-  <input type="file" id="fileInput" accept=".json" style="display:none">
-</div>
-
-<div class="save-note" id="saveNote"></div>
-
-<div id="pages"></div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/4.1.7/signature_pad.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-<script>
-// ============================================
-//  CONFIGURATION – 20 rows per page
-// ============================================
-const ROWS_PER_PAGE = 20;
-
-const pagesEl = document.getElementById('pages');
-let pageCount = 0;
-const sigPads = {};
-
-function timeOptionsHTML(){
-  let html = '<option value="" class="placeholder">--:--</option>';
-  for(let m=0; m<24*60; m+=15){
-    const h24 = Math.floor(m/60);
-    const min = m%60;
-    const ampm = h24 < 12 ? 'AM' : 'PM';
-    let h12 = h24 % 12; if(h12===0) h12 = 12;
-    const label = `${h12}:${String(min).padStart(2,'0')} ${ampm}`;
-    html += `<option value="${m}">${label}</option>`;
-  }
-  return html;
-}
-const TIME_OPTIONS_HTML = timeOptionsHTML();
-
-function yearOptionsHTML(){
-  const current = new Date().getFullYear();
-  let html = '<option value="">Year...</option>';
-  for(let y = current - 2; y <= current + 2; y++){
-    const selected = y === current ? ' selected' : '';
-    html += `<option value="${y}"${selected}>${y}</option>`;
-  }
-  return html;
-}
-
-function computeHours(tr){
-  const startSel = tr.querySelector('.time-start');
-  const endSel = tr.querySelector('.time-end');
-  const hrsInput = tr.querySelector('.hrs-input');
-  const s = startSel.value, e = endSel.value;
-  if(s === '' || e === ''){
-    hrsInput.value = '';
-  } else {
-    let diff = parseInt(e) - parseInt(s);
-    if(diff <= 0) diff += 24*60;
-    hrsInput.value = (diff/60).toFixed(2);
-  }
-  updateTotal(tr.closest('.sheet'));
-}
-
-function formatDateShort(iso){
-  const [y, m, d] = iso.split('-').map(Number);
-  const yy = String(y % 100).padStart(2,'0');
-  return `${m}/${d}/${yy}`;
-}
-
-function makeRow(){
-  const tr = document.createElement('tr');
-  tr.innerHTML = `
-    <td class="date-cell">
-      <input type="text" class="date-display" placeholder=" " readonly tabindex="-1">
-      <input type="date" class="date-native" aria-label="Date worked">
-    </td>
-    <td><input type="text" class="day-input" placeholder="--" readonly tabindex="-1"></td>
-    <td><input type="text" class="employer-input" placeholder=""></td>
-    <td>
-      <select class="type-select">
-        <option value="" class="placeholder"> </option>
-        <option value="Traffic">Traffic</option>
-        <option value="Security">Security</option>
-        <option value="Other">Other</option>
-      </select>
-    </td>
-    <td class="time-cell">
-      <select class="time-start">${TIME_OPTIONS_HTML}</select>
-      <span class="time-sep">–</span>
-      <select class="time-end">${TIME_OPTIONS_HTML}</select>
-    </td>
-    <td><input type="text" class="hrs-input" placeholder="" readonly tabindex="-1"></td>
-    <td class="row-del" title="Clear row">✕</td>
-  `;
-
-  const dateNative = tr.querySelector('.date-native');
-  const dateDisplay = tr.querySelector('.date-display');
-  const dayInput = tr.querySelector('.day-input');
-
-  dateNative.addEventListener('change', ()=>{
-    if (dateNative.value) {
-      dateDisplay.value = formatDateShort(dateNative.value);
-      const dateObj = new Date(dateNative.value + 'T00:00:00');
-      dayInput.value = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
-    } else {
-      dateDisplay.value = '';
-      dayInput.value = '';
-    }
-  });
-
-  tr.querySelector('.row-del').addEventListener('click', ()=>{
-    tr.querySelectorAll('input').forEach(i=>i.value='');
-    tr.querySelectorAll('select').forEach(s=>s.value='');
-    const sheet = tr.closest('.sheet');
-    updateTotal(sheet);
-  });
-  tr.querySelector('.time-start').addEventListener('change', ()=> computeHours(tr));
-  tr.querySelector('.time-end').addEventListener('change', ()=> computeHours(tr));
-  return tr;
-}
-
-function updateTotal(sheet){
-  const grand = document.querySelectorAll('.hrs-input');
-  let allSum = 0;
-  grand.forEach(i=>{ const v=parseFloat(i.value); if(!isNaN(v)) allSum+=v; });
-  document.querySelectorAll('.grand-total-val').forEach(el=> el.textContent = allSum.toFixed(2));
-}
-
-function initSigPad(canvas){
-  function resize(){
-    const ratio = Math.max(window.devicePixelRatio || 1, 1);
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * ratio;
-    canvas.height = rect.height * ratio;
-    canvas.getContext('2d').scale(ratio, ratio);
-  }
-  resize();
-  const pad = new SignaturePad(canvas, {backgroundColor:'rgba(255,255,255,0)', penColor:'#1a1d21'});
-  window.addEventListener('resize', ()=>{ const data = pad.toData(); resize(); pad.fromData(data); });
-  return pad;
-}
-
-function addPage(){
-  pageCount++;
-  const pid = pageCount;
-  const isFirst = pid === 1;
-
-  const sheet = document.createElement('div');
-  sheet.className = 'sheet';
-  sheet.dataset.page = pid;
-
-  sheet.innerHTML = `
-    <div class="page-tag">Page ${pid}</div>
-    <div class="sheet-header">
-      <img class="sheet-logo sheet-logo-badge" src="badge.png" alt="" onerror="this.style.visibility='hidden'">
-      <h1>PAPD - Off-Duty Employment Report ${isFirst ? '' : '<span class="cont">(Continued)</span>'}</h1>
-      <img class="sheet-logo sheet-logo-patch" src="patch.png" alt="" onerror="this.style.visibility='hidden'">
-    </div>
-    ${isFirst ? `
-    <div class="info-grid">
-      <div class="info-cell"><label>Officer:</label><input type="text"></div>
-      <div class="info-cell">
-        <label>Rank:</label>
-        <select class="info-select">
-          <option value="">Select...</option>
-          <option value="Officer">Officer</option>
-          <option value="Sergeant">Sergeant</option>
-          <option value="Lieutenant">Lieutenant</option>
-          <option value="Deputy Chief">Deputy Chief</option>
-          <option value="Chief">Chief</option>
-        </select>
-      </div>
-      <div class="info-cell">
-        <label>Division:</label>
-        <select class="info-select">
-          <option value="">Select...</option>
-          <option value="Field Operations">Field Operations</option>
-          <option value="Criminal Investigations">Criminal Investigations</option>
-          <option value="Administration">Administration</option>
-        </select>
-      </div>
-      <div class="info-cell">
-        <label>Month / Year:</label>
-        <select class="info-select info-select-month">
-          <option value="">Month...</option>
-          <option value="January">January</option>
-          <option value="February">February</option>
-          <option value="March">March</option>
-          <option value="April">April</option>
-          <option value="May">May</option>
-          <option value="June">June</option>
-          <option value="July">July</option>
-          <option value="August">August</option>
-          <option value="September">September</option>
-          <option value="October">October</option>
-          <option value="November">November</option>
-          <option value="December">December</option>
-        </select>
-        <select class="info-select info-select-year">${yearOptionsHTML()}</select>
-      </div>
-    </div>` : ''}
-    <table>
-      <colgroup>
-        <col class="c-date"><col class="c-day"><col class="c-emp"><col class="c-type"><col class="c-time"><col class="c-hrs"><col class="c-del">
-      </colgroup>
-      <thead>
-        <tr>
-          <th>Date Worked</th><th>Day of Week</th><th>Employer</th><th>Type of Work</th><th>Time Worked</th><th>Hours</th><th></th>
-        </tr>
-      </thead>
-      <tbody></tbody>
-    </table>
-    <div class="total-row">
-      <span>Running Total (all pages):</span>
-      <span class="val grand-total-val">0.00</span>
-      <span>hrs</span>
-    </div>
-    ${pid > 1 ? `<div class="table-actions" style="justify-content:flex-start;margin-top:14px;">
-        <button class="btn-danger remove-page-btn">Remove this page</button>
-      </div>` : ''}
-    <div class="sig-section">
-      <div class="sig-block">
-        <label>Officer Signature</label>
-        <div class="sig-pad-wrap"><canvas class="sig-pad" id="sig-officer-${pid}"></canvas></div>
-        <div class="sig-controls">
-          <small>Sign with mouse or touch</small>
-          <button class="clear-sig-btn" data-target="sig-officer-${pid}">Clear</button>
+    <!-- ─── TOOLBAR ─── -->
+    <div class="toolbar">
+        <div class="toolbar-header">
+            <div class="toolbar-title">Off-Duty Employment Report — Digital</div>
         </div>
-      </div>
-      <div class="sig-block">
-        <label>Unit / Watch Commander Signature</label>
-        <div class="sig-pad-wrap"><canvas class="sig-pad" id="sig-commander-${pid}"></canvas></div>
-        <div class="sig-controls">
-          <small>Sign with mouse or touch</small>
-          <button class="clear-sig-btn" data-target="sig-commander-${pid}">Clear</button>
+        <div class="btn-group">
+            <button class="btn-secondary" id="addPageBtn">+ Add Page (20 rows)</button>
+            <button class="btn-secondary" id="printBtn">🖨️ Print</button>
+            <button class="btn-primary" id="exportBtn">⬇️ Export as PDF</button>
+            <button class="btn-secondary" id="saveBtn">💾 Save Progress</button>
+            <button class="btn-secondary" id="loadBtn">📂 Load Progress</button>
+            <button class="btn-danger" id="clearBtn">🗑️ Clear All</button>
         </div>
-      </div>
+        <input type="file" id="fileInput" accept=".json" style="display:none" />
     </div>
-  `;
 
-  pagesEl.appendChild(sheet);
+    <div class="save-note" id="saveNote"></div>
 
-  const tbody = sheet.querySelector('tbody');
-  for(let i=0;i<ROWS_PER_PAGE;i++) tbody.appendChild(makeRow());
+    <div id="pages"></div>
 
-  const removeBtn = sheet.querySelector('.remove-page-btn');
-  if(removeBtn){
-    removeBtn.addEventListener('click', ()=>{
-      delete sigPads[`sig-officer-${pid}`];
-      delete sigPads[`sig-commander-${pid}`];
-      sheet.remove();
-      renumberPages();
-      updateTotal(sheet);
-    });
-  }
+    <!-- ─── LIBRARIES ─── -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/4.1.7/signature_pad.umd.min.js">
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js">
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js">
+    </script>
 
-  sheet.querySelectorAll('canvas.sig-pad').forEach(canvas=>{
-    const pad = initSigPad(canvas);
-    sigPads[canvas.id] = pad;
-  });
+    <script>
+        // ============================================================
+        //  CONFIG
+        // ============================================================
+        const ROWS_PER_PAGE = 20;
+        const pagesEl = document.getElementById('pages');
+        let pageCount = 0;
+        const sigPads = {};
 
-  sheet.querySelectorAll('.clear-sig-btn').forEach(btn=>{
-    btn.addEventListener('click', ()=>{
-      const p = sigPads[btn.dataset.target];
-      if(p) p.clear();
-    });
-  });
+        // ─── TIME OPTIONS ───
+        function timeOptionsHTML() {
+            let html = '<option value="" class="placeholder">--:--</option>';
+            for (let m = 0; m < 24 * 60; m += 15) {
+                const h24 = Math.floor(m / 60);
+                const min = m % 60;
+                const ampm = h24 < 12 ? 'AM' : 'PM';
+                let h12 = h24 % 12;
+                if (h12 === 0) h12 = 12;
+                const label = `${h12}:${String(min).padStart(2, '0')} ${ampm}`;
+                html += `<option value="${m}">${label}</option>`;
+            }
+            return html;
+        }
+        const TIME_OPTIONS_HTML = timeOptionsHTML();
 
-  updateTotal(sheet);
-}
+        function yearOptionsHTML() {
+            const current = new Date().getFullYear();
+            let html = '<option value="">Year...</option>';
+            for (let y = current - 2; y <= current + 2; y++) {
+                const selected = y === current ? ' selected' : '';
+                html += `<option value="${y}"${selected}>${y}</option>`;
+            }
+            return html;
+        }
 
-function renumberPages(){
-  const sheets = [...document.querySelectorAll('.sheet')];
-  sheets.forEach((s, idx)=>{
-    s.dataset.page = idx+1;
-    s.querySelector('.page-tag').textContent = `Page ${idx+1}`;
-  });
-}
+        // ─── HELPERS ───
+        function computeHours(tr) {
+            const startSel = tr.querySelector('.time-start');
+            const endSel = tr.querySelector('.time-end');
+            const hrsInput = tr.querySelector('.hrs-input');
+            const s = startSel.value,
+                e = endSel.value;
+            if (s === '' || e === '') {
+                hrsInput.value = '';
+            } else {
+                let diff = parseInt(e) - parseInt(s);
+                if (diff <= 0) diff += 24 * 60;
+                hrsInput.value = (diff / 60).toFixed(2);
+            }
+            updateTotal(tr.closest('.sheet'));
+        }
 
-// ============================================
-//  STATE COLLECTION / APPLICATION
-// ============================================
+        function formatDateShort(iso) {
+            const [y, m, d] = iso.split('-').map(Number);
+            const yy = String(y % 100).padStart(2, '0');
+            return `${m}/${d}/${yy}`;
+        }
 
-function collectPageData(sheet) {
-  const rows = [];
-  sheet.querySelectorAll('tbody tr').forEach(tr => {
-    const dateNative = tr.querySelector('.date-native');
-    const dayInput = tr.querySelector('.day-input');
-    const employerInput = tr.querySelector('.employer-input');
-    const type = tr.querySelector('.type-select').value;
-    const start = tr.querySelector('.time-start').value;
-    const end = tr.querySelector('.time-end').value;
-    rows.push({
-      date: dateNative.value,
-      day: dayInput.value,
-      employer: employerInput.value,
-      type: type,
-      start: start || '',
-      end: end || ''
-    });
-  });
+        function updateTotal(sheet) {
+            const grand = document.querySelectorAll('.hrs-input');
+            let allSum = 0;
+            grand.forEach(i => { const v = parseFloat(i.value); if (!isNaN(v)) allSum += v; });
+            document.querySelectorAll('.grand-total-val').forEach(el => el.textContent = allSum.toFixed(2));
+        }
 
-  const pageId = sheet.dataset.page;
-  const sigOfficer = sigPads[`sig-officer-${pageId}`]?.toDataURL() || '';
-  const sigCommander = sigPads[`sig-commander-${pageId}`]?.toDataURL() || '';
+        // ─── ROW FACTORY ───
+        function makeRow() {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+            <td class="date-cell">
+              <input type="text" class="date-display" placeholder=" " readonly tabindex="-1">
+              <input type="date" class="date-native" aria-label="Date worked">
+            </td>
+            <td><input type="text" class="day-input" placeholder="--" readonly tabindex="-1"></td>
+            <td><input type="text" class="employer-input" placeholder=""></td>
+            <td>
+              <select class="type-select">
+                <option value="" class="placeholder"> </option>
+                <option value="Traffic">Traffic</option>
+                <option value="Security">Security</option>
+                <option value="Other">Other</option>
+              </select>
+            </td>
+            <td class="time-cell">
+              <select class="time-start">${TIME_OPTIONS_HTML}</select>
+              <span class="time-sep">–</span>
+              <select class="time-end">${TIME_OPTIONS_HTML}</select>
+            </td>
+            <td><input type="text" class="hrs-input" placeholder="" readonly tabindex="-1"></td>
+            <td class="row-del" title="Clear row">✕</td>
+          `;
 
-  return { rows, sigOfficer, sigCommander };
-}
+            const dateNative = tr.querySelector('.date-native');
+            const dateDisplay = tr.querySelector('.date-display');
+            const dayInput = tr.querySelector('.day-input');
 
-function collectHeaderData() {
-  const firstSheet = document.querySelector('.sheet');
-  if (!firstSheet) return {};
-  const infoCells = firstSheet.querySelectorAll('.info-cell');
-  
-  const officer = infoCells[0]?.querySelector('input')?.value || '';
-  const rank = infoCells[1]?.querySelector('select')?.value || '';
-  const division = infoCells[2]?.querySelector('select')?.value || '';
-  const month = infoCells[3]?.querySelector('.info-select-month')?.value || '';
-  const year = infoCells[3]?.querySelector('.info-select-year')?.value || '';
-  
-  return { officer, rank, division, month, year };
-}
+            dateNative.addEventListener('change', () => {
+                if (dateNative.value) {
+                    dateDisplay.value = formatDateShort(dateNative.value);
+                    const dateObj = new Date(dateNative.value + 'T00:00:00');
+                    dayInput.value = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+                } else {
+                    dateDisplay.value = '';
+                    dayInput.value = '';
+                }
+            });
 
-function getFullState() {
-  const sheets = document.querySelectorAll('.sheet');
-  const pages = [];
-  sheets.forEach(sheet => pages.push(collectPageData(sheet)));
-  const header = collectHeaderData();
-  return { header, pages };
-}
+            tr.querySelector('.row-del').addEventListener('click', () => {
+                tr.querySelectorAll('input').forEach(i => i.value = '');
+                tr.querySelectorAll('select').forEach(s => s.value = '');
+                const sheet = tr.closest('.sheet');
+                updateTotal(sheet);
+            });
+            tr.querySelector('.time-start').addEventListener('change', () => computeHours(tr));
+            tr.querySelector('.time-end').addEventListener('change', () => computeHours(tr));
+            return tr;
+        }
 
-const STORAGE_KEY = 'employmentForm';
+        // ─── SIGNATURE PAD ───
+        function initSigPad(canvas) {
+            function resize() {
+                const ratio = Math.max(window.devicePixelRatio || 1, 1);
+                const rect = canvas.getBoundingClientRect();
+                canvas.width = rect.width * ratio;
+                canvas.height = rect.height * ratio;
+                canvas.getContext('2d').scale(ratio, ratio);
+            }
+            resize();
+            const pad = new SignaturePad(canvas, { backgroundColor: 'rgba(255,255,255,0)', penColor: '#1a1d21' });
+            window.addEventListener('resize', () => { const data = pad.toData();
+                resize();
+                pad.fromData(data); });
+            return pad;
+        }
 
-function saveToLocalStorage(state) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  } catch (e) { /* ignore */ }
-}
+        // ─── ADD PAGE ───
+        function addPage() {
+            pageCount++;
+            const pid = pageCount;
+            const isFirst = pid === 1;
 
-function loadFromLocalStorage() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return null;
-  try { return JSON.parse(raw); } catch { return null; }
-}
+            const sheet = document.createElement('div');
+            sheet.className = 'sheet';
+            sheet.dataset.page = pid;
 
-function applyState(state) {
-  document.querySelectorAll('.sheet').forEach(el => el.remove());
-  pageCount = 0;
-  for (const key in sigPads) delete sigPads[key];
+            sheet.innerHTML = `
+            <div class="page-tag">Page ${pid}</div>
+            <div class="sheet-header">
+              <img class="sheet-logo sheet-logo-badge" src="badge.png" alt="" onerror="this.style.visibility='hidden'">
+              <h1>PAPD - Off-Duty Employment Report ${isFirst ? '' : '<span class="cont">(Continued)</span>'}</h1>
+              <img class="sheet-logo sheet-logo-patch" src="patch.png" alt="" onerror="this.style.visibility='hidden'">
+            </div>
+            ${isFirst ? `
+            <div class="info-grid">
+              <div class="info-cell"><label>Officer:</label><input type="text"></div>
+              <div class="info-cell">
+                <label>Rank:</label>
+                <select class="info-select">
+                  <option value="">Select...</option>
+                  <option value="Officer">Officer</option>
+                  <option value="Sergeant">Sergeant</option>
+                  <option value="Lieutenant">Lieutenant</option>
+                  <option value="Deputy Chief">Deputy Chief</option>
+                  <option value="Chief">Chief</option>
+                </select>
+              </div>
+              <div class="info-cell">
+                <label>Division:</label>
+                <select class="info-select">
+                  <option value="">Select...</option>
+                  <option value="Field Operations">Field Operations</option>
+                  <option value="Criminal Investigations">Criminal Investigations</option>
+                  <option value="Administration">Administration</option>
+                </select>
+              </div>
+              <div class="info-cell">
+                <label>Month / Year:</label>
+                <select class="info-select info-select-month">
+                  <option value="">Month...</option>
+                  <option value="January">January</option>
+                  <option value="February">February</option>
+                  <option value="March">March</option>
+                  <option value="April">April</option>
+                  <option value="May">May</option>
+                  <option value="June">June</option>
+                  <option value="July">July</option>
+                  <option value="August">August</option>
+                  <option value="September">September</option>
+                  <option value="October">October</option>
+                  <option value="November">November</option>
+                  <option value="December">December</option>
+                </select>
+                <select class="info-select info-select-year">${yearOptionsHTML()}</select>
+              </div>
+            </div>` : ''}
+            <table>
+              <colgroup>
+                <col class="c-date"><col class="c-day"><col class="c-emp"><col class="c-type"><col class="c-time"><col class="c-hrs"><col class="c-del">
+              </colgroup>
+              <thead>
+                <tr>
+                  <th>Date Worked</th><th>Day</th><th>Employer</th><th>Type</th><th>Time Worked</th><th>Hrs</th><th></th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+            <div class="total-row">
+              <span>Running Total (all pages):</span>
+              <span class="val grand-total-val">0.00</span>
+              <span>hrs</span>
+            </div>
+            ${pid > 1 ? `<div class="table-actions" style="justify-content:flex-start;margin-top:12px;">
+                <button class="btn-danger remove-page-btn">Remove this page</button>
+              </div>` : ''}
+            <div class="sig-section">
+              <div class="sig-block">
+                <label>Officer Signature</label>
+                <div class="sig-pad-wrap"><canvas class="sig-pad" id="sig-officer-${pid}"></canvas></div>
+                <div class="sig-controls">
+                  <small>Sign with mouse or touch</small>
+                  <button class="clear-sig-btn" data-target="sig-officer-${pid}">Clear</button>
+                </div>
+              </div>
+              <div class="sig-block">
+                <label>Unit / Watch Commander Signature</label>
+                <div class="sig-pad-wrap"><canvas class="sig-pad" id="sig-commander-${pid}"></canvas></div>
+                <div class="sig-controls">
+                  <small>Sign with mouse or touch</small>
+                  <button class="clear-sig-btn" data-target="sig-commander-${pid}">Clear</button>
+                </div>
+              </div>
+            </div>
+          `;
 
-  state.pages.forEach((pageData, idx) => {
-    restorePageFromData(pageData, idx);
-  });
+            pagesEl.appendChild(sheet);
 
-  const firstSheet = document.querySelector('.sheet');
-  if (firstSheet && state.header) {
-    const h = state.header;
-    const infoCells = firstSheet.querySelectorAll('.info-cell');
-    
-    if (infoCells.length >= 4) {
-      const officerInput = infoCells[0]?.querySelector('input');
-      if (officerInput) officerInput.value = h.officer || '';
-      
-      const rankSelect = infoCells[1]?.querySelector('select');
-      if (rankSelect) rankSelect.value = h.rank || '';
-      
-      const divisionSelect = infoCells[2]?.querySelector('select');
-      if (divisionSelect) divisionSelect.value = h.division || '';
-      
-      const monthSelect = infoCells[3]?.querySelector('.info-select-month');
-      const yearSelect = infoCells[3]?.querySelector('.info-select-year');
-      if (monthSelect) monthSelect.value = h.month || '';
-      if (yearSelect) yearSelect.value = h.year || '';
-    }
-  }
+            const tbody = sheet.querySelector('tbody');
+            for (let i = 0; i < ROWS_PER_PAGE; i++) tbody.appendChild(makeRow());
 
-  document.querySelectorAll('.sheet').forEach(sheet => updateTotal(sheet));
-  saveToLocalStorage(state);
-}
+            const removeBtn = sheet.querySelector('.remove-page-btn');
+            if (removeBtn) {
+                removeBtn.addEventListener('click', () => {
+                    delete sigPads[`sig-officer-${pid}`];
+                    delete sigPads[`sig-commander-${pid}`];
+                    sheet.remove();
+                    renumberPages();
+                    updateTotal(sheet);
+                });
+            }
 
-function restorePageFromData(pageData, pageIndex) {
-  addPage();
-  const sheets = document.querySelectorAll('.sheet');
-  const sheet = sheets[pageIndex];
-  if (!sheet) return;
+            sheet.querySelectorAll('canvas.sig-pad').forEach(canvas => {
+                const pad = initSigPad(canvas);
+                sigPads[canvas.id] = pad;
+            });
 
-  const tbody = sheet.querySelector('tbody');
-  const rows = tbody.querySelectorAll('tr');
+            sheet.querySelectorAll('.clear-sig-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const p = sigPads[btn.dataset.target];
+                    if (p) p.clear();
+                });
+            });
 
-  pageData.rows.forEach((rowData, i) => {
-    if (i >= rows.length) return;
-    const tr = rows[i];
-    const dateNative = tr.querySelector('.date-native');
-    const dateDisplay = tr.querySelector('.date-display');
-    const dayInput = tr.querySelector('.day-input');
-    const employerInput = tr.querySelector('.employer-input');
-    const type = tr.querySelector('.type-select');
-    const start = tr.querySelector('.time-start');
-    const end = tr.querySelector('.time-end');
+            updateTotal(sheet);
+        }
 
-    if (rowData.date) {
-      dateNative.value = rowData.date;
-      dateDisplay.value = formatDateShort(rowData.date);
-      dayInput.value = rowData.day || '';
-    }
-    employerInput.value = rowData.employer || '';
-    type.value = rowData.type || '';
-    start.value = rowData.start || '';
-    end.value = rowData.end || '';
-    computeHours(tr);
-  });
+        function renumberPages() {
+            const sheets = [...document.querySelectorAll('.sheet')];
+            sheets.forEach((s, idx) => {
+                s.dataset.page = idx + 1;
+                const tag = s.querySelector('.page-tag');
+                if (tag) tag.textContent = `Page ${idx + 1}`;
+            });
+        }
 
-  const pid = sheet.dataset.page;
-  const officerPad = sigPads[`sig-officer-${pid}`];
-  const commanderPad = sigPads[`sig-commander-${pid}`];
-  if (officerPad && pageData.sigOfficer) {
-    try { officerPad.fromDataURL(pageData.sigOfficer); } catch(e) {}
-  }
-  if (commanderPad && pageData.sigCommander) {
-    try { commanderPad.fromDataURL(pageData.sigCommander); } catch(e) {}
-  }
-}
+        // ============================================================
+        //  STATE
+        // ============================================================
+        function collectPageData(sheet) {
+            const rows = [];
+            sheet.querySelectorAll('tbody tr').forEach(tr => {
+                const dateNative = tr.querySelector('.date-native');
+                const dayInput = tr.querySelector('.day-input');
+                const employerInput = tr.querySelector('.employer-input');
+                const type = tr.querySelector('.type-select').value;
+                const start = tr.querySelector('.time-start').value;
+                const end = tr.querySelector('.time-end').value;
+                rows.push({
+                    date: dateNative.value,
+                    day: dayInput.value,
+                    employer: employerInput.value,
+                    type: type,
+                    start: start || '',
+                    end: end || ''
+                });
+            });
+            const pageId = sheet.dataset.page;
+            const sigOfficer = sigPads[`sig-officer-${pageId}`]?.toDataURL() || '';
+            const sigCommander = sigPads[`sig-commander-${pageId}`]?.toDataURL() || '';
+            return { rows, sigOfficer, sigCommander };
+        }
 
-function exportStateToFile() {
-  const state = getFullState();
-  const json = JSON.stringify(state, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `EmploymentReport_Backup_${new Date().toISOString().slice(0,10)}.json`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
+        function collectHeaderData() {
+            const firstSheet = document.querySelector('.sheet');
+            if (!firstSheet) return {};
+            const infoCells = firstSheet.querySelectorAll('.info-cell');
+            const officer = infoCells[0]?.querySelector('input')?.value || '';
+            const rank = infoCells[1]?.querySelector('select')?.value || '';
+            const division = infoCells[2]?.querySelector('select')?.value || '';
+            const month = infoCells[3]?.querySelector('.info-select-month')?.value || '';
+            const year = infoCells[3]?.querySelector('.info-select-year')?.value || '';
+            return { officer, rank, division, month, year };
+        }
 
-function importStateFromFile(file) {
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const state = JSON.parse(e.target.result);
-      if (!state.header || !state.pages || !Array.isArray(state.pages)) {
-        throw new Error('Invalid file structure.');
-      }
-      applyState(state);
-      showSaveNote('Progress loaded.', 'success');
-    } catch (err) {
-      showSaveNote('Failed to import file: ' + err.message, 'error');
-    }
-  };
-  reader.readAsText(file);
-}
+        function getFullState() {
+            const sheets = document.querySelectorAll('.sheet');
+            const pages = [];
+            sheets.forEach(sheet => pages.push(collectPageData(sheet)));
+            const header = collectHeaderData();
+            return { header, pages };
+        }
 
-function clearAll() {
-  if (!confirm('This will delete ALL data. Are you sure?')) return;
-  
-  document.querySelectorAll('.sheet').forEach(el => el.remove());
-  pageCount = 0;
-  for (const key in sigPads) delete sigPads[key];
-  
-  addPage();
-  localStorage.removeItem(STORAGE_KEY);
-  showSaveNote('All data cleared.', 'success');
-}
+        const STORAGE_KEY = 'employmentForm';
 
-function attachAutoSave() {
-  document.addEventListener('input', (e) => {
-    if (e.target.closest('.sheet')) {
-      const state = getFullState();
-      saveToLocalStorage(state);
-    }
-  });
-  document.addEventListener('change', (e) => {
-    if (e.target.closest('.sheet')) {
-      const state = getFullState();
-      saveToLocalStorage(state);
-    }
-  });
-  window.addEventListener('beforeunload', () => {
-    const state = getFullState();
-    saveToLocalStorage(state);
-  });
-}
+        function saveToLocalStorage(state) {
+            try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
+        }
 
-function showSaveNote(msg, type){
-  const note = document.getElementById('saveNote');
-  note.textContent = msg;
-  note.className = 'save-note' + (type ? ' ' + type : '');
-  setTimeout(()=>{ if(note.textContent === msg) note.textContent = ''; }, 4000);
-}
+        function loadFromLocalStorage() {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return null;
+            try { return JSON.parse(raw); } catch { return null; }
+        }
 
-// ============================================
-//  PDF EXPORT — dedicated auto-download, distinct from Print
-// ============================================
+        function applyState(state) {
+            document.querySelectorAll('.sheet').forEach(el => el.remove());
+            pageCount = 0;
+            for (const key in sigPads) delete sigPads[key];
 
-function prepExportOverlays(sheet){
-  const entries = [];
+            state.pages.forEach((pageData, idx) => {
+                restorePageFromData(pageData, idx);
+            });
 
-  // Replace every <select> with a plain text element that takes the exact
-  // same flex slot in the row — native dropdown rendering isn't captured
-  // accurately by the PDF snapshot process, and an absolutely-positioned
-  // overlay would cover sibling elements (like the "Rank:" label) instead
-  // of just the dropdown itself.
-  sheet.querySelectorAll('select').forEach(sel=>{
-    const div = document.createElement('div');
-    const text = sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : '';
-    div.textContent = (text || '').trim() === 'Select...' ? '' : text;
-    div.style.display = 'flex';
-    div.style.alignItems = 'center';
-    div.style.whiteSpace = 'nowrap';
-    div.style.overflow = 'hidden';
-    div.style.textOverflow = 'ellipsis';
-    div.style.color = sel.value === '' ? '#6b7280' : '#1a1d21';
-    div.style.fontFamily = "'Helvetica Neue',Arial,sans-serif";
-    div.style.boxSizing = 'border-box';
+            const firstSheet = document.querySelector('.sheet');
+            if (firstSheet && state.header) {
+                const h = state.header;
+                const infoCells = firstSheet.querySelectorAll('.info-cell');
+                if (infoCells.length >= 4) {
+                    const officerInput = infoCells[0]?.querySelector('input');
+                    if (officerInput) officerInput.value = h.officer || '';
+                    const rankSelect = infoCells[1]?.querySelector('select');
+                    if (rankSelect) rankSelect.value = h.rank || '';
+                    const divisionSelect = infoCells[2]?.querySelector('select');
+                    if (divisionSelect) divisionSelect.value = h.division || '';
+                    const monthSelect = infoCells[3]?.querySelector('.info-select-month');
+                    const yearSelect = infoCells[3]?.querySelector('.info-select-year');
+                    if (monthSelect) monthSelect.value = h.month || '';
+                    if (yearSelect) yearSelect.value = h.year || '';
+                }
+            }
+            document.querySelectorAll('.sheet').forEach(sheet => updateTotal(sheet));
+            saveToLocalStorage(state);
+        }
 
-    if(sel.classList.contains('info-select-month')){
-      div.style.flex = '1.4';
-      div.style.fontSize = '12px';
-      div.style.padding = '2px 2px';
-      div.style.justifyContent = 'flex-start';
-    } else if(sel.classList.contains('info-select-year')){
-      div.style.flex = '0.8';
-      div.style.fontSize = '12px';
-      div.style.padding = '2px 2px';
-      div.style.justifyContent = 'flex-start';
-    } else if(sel.classList.contains('info-select')){
-      div.style.flex = '1';
-      div.style.fontSize = '12px';
-      div.style.padding = '2px 2px';
-      div.style.justifyContent = 'flex-start';
-    } else if(sel.classList.contains('type-select')){
-      div.style.width = '100%';
-      div.style.height = '100%';
-      div.style.fontSize = '10px';
-      div.style.padding = '0 2px';
-      div.style.justifyContent = 'flex-start';
-    } else if(sel.classList.contains('time-start') || sel.classList.contains('time-end')){
-      div.style.flex = '1';
-      div.style.minWidth = '0';
-      div.style.fontSize = '9px';
-      div.style.padding = '0 1px';
-      div.style.justifyContent = 'center';
-      div.style.height = '100%';
-    } else {
-      div.style.flex = '1';
-      div.style.fontSize = '10px';
-      div.style.padding = '0 2px';
-      div.style.justifyContent = 'flex-start';
-    }
+        function restorePageFromData(pageData, pageIndex) {
+            addPage();
+            const sheets = document.querySelectorAll('.sheet');
+            const sheet = sheets[pageIndex];
+            if (!sheet) return;
 
-    // Insert the replacement in the exact same spot in the flex row, then
-    // fully remove the select from layout (display:none, not just hidden)
-    // so it doesn't reserve extra space alongside the new element.
-    sel.parentElement.insertBefore(div, sel);
-    sel.style.display = 'none';
-    entries.push({div, sel});
-  });
+            const tbody = sheet.querySelector('tbody');
+            const rows = tbody.querySelectorAll('tr');
 
-  // Hide the invisible native date-picker control — the formatted text
-  // field (date-display) already shows the chosen date.
-  const dateNatives = [...sheet.querySelectorAll('.date-native')];
-  dateNatives.forEach(el=> el.style.visibility = 'hidden');
+            pageData.rows.forEach((rowData, i) => {
+                if (i >= rows.length) return;
+                const tr = rows[i];
+                const dateNative = tr.querySelector('.date-native');
+                const dateDisplay = tr.querySelector('.date-display');
+                const dayInput = tr.querySelector('.day-input');
+                const employerInput = tr.querySelector('.employer-input');
+                const type = tr.querySelector('.type-select');
+                const start = tr.querySelector('.time-start');
+                const end = tr.querySelector('.time-end');
 
-  return { entries, dateNatives };
-}
+                if (rowData.date) {
+                    dateNative.value = rowData.date;
+                    dateDisplay.value = formatDateShort(rowData.date);
+                    dayInput.value = rowData.day || '';
+                }
+                employerInput.value = rowData.employer || '';
+                type.value = rowData.type || '';
+                start.value = rowData.start || '';
+                end.value = rowData.end || '';
+                computeHours(tr);
+            });
 
-function restoreExportOverlays(state){
-  state.entries.forEach(({div, sel})=>{
-    div.remove();
-    sel.style.display = '';
-  });
-  state.dateNatives.forEach(el=> el.style.visibility = '');
-}
+            const pid = sheet.dataset.page;
+            const officerPad = sigPads[`sig-officer-${pid}`];
+            const commanderPad = sigPads[`sig-commander-${pid}`];
+            if (officerPad && pageData.sigOfficer) {
+                try { officerPad.fromDataURL(pageData.sigOfficer); } catch (e) {}
+            }
+            if (commanderPad && pageData.sigCommander) {
+                try { commanderPad.fromDataURL(pageData.sigCommander); } catch (e) {}
+            }
+        }
 
-async function exportAsPDF(){
-  const btn = document.getElementById('exportBtn');
-  const origText = btn.textContent;
-  btn.textContent = 'Generating PDF...';
-  btn.disabled = true;
+        // ─── FILE IMPORT / EXPORT ───
+        function exportStateToFile() {
+            const state = getFullState();
+            const json = JSON.stringify(state, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `EmploymentReport_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
 
-  try{
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF('p', 'pt', 'letter');
-    const pageW = pdf.internal.pageSize.getWidth();   // 612pt
-    const pageH = pdf.internal.pageSize.getHeight();  // 792pt
-    const sheets = [...document.querySelectorAll('.sheet')];
+        function importStateFromFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const state = JSON.parse(e.target.result);
+                    if (!state.header || !state.pages || !Array.isArray(state.pages)) {
+                        throw new Error('Invalid file structure.');
+                    }
+                    applyState(state);
+                    showSaveNote('Progress loaded.', 'success');
+                } catch (err) {
+                    showSaveNote('Failed to import file: ' + err.message, 'error');
+                }
+            };
+            reader.readAsText(file);
+        }
 
-    for(let i=0;i<sheets.length;i++){
-      const sheet = sheets[i];
-      const controls = sheet.querySelectorAll('.row-del,.table-actions,.sig-controls');
-      controls.forEach(c=>c.style.visibility='hidden');
-      const overlayState = prepExportOverlays(sheet);
+        function clearAll() {
+            if (!confirm('This will delete ALL data. Are you sure?')) return;
+            document.querySelectorAll('.sheet').forEach(el => el.remove());
+            pageCount = 0;
+            for (const key in sigPads) delete sigPads[key];
+            addPage();
+            localStorage.removeItem(STORAGE_KEY);
+            showSaveNote('All data cleared.', 'success');
+        }
 
-      // Force the same compact, two-column layout the print stylesheet
-      // uses (already verified to fit one page) — regardless of the
-      // device's actual screen size — so captures are always consistent.
-      sheet.classList.add('pdf-capture');
+        // ─── AUTO-SAVE ───
+        function attachAutoSave() {
+            document.addEventListener('input', (e) => {
+                if (e.target.closest('.sheet')) {
+                    const state = getFullState();
+                    saveToLocalStorage(state);
+                }
+            });
+            document.addEventListener('change', (e) => {
+                if (e.target.closest('.sheet')) {
+                    const state = getFullState();
+                    saveToLocalStorage(state);
+                }
+            });
+            window.addEventListener('beforeunload', () => {
+                const state = getFullState();
+                saveToLocalStorage(state);
+            });
+        }
 
-      const canvas = await html2canvas(sheet, {
-        scale: 3,
-        backgroundColor:'#ffffff',
-        useCORS:true,
-        imageTimeout: 5000
-      });
+        function showSaveNote(msg, type) {
+            const note = document.getElementById('saveNote');
+            note.textContent = msg;
+            note.className = 'save-note' + (type ? ' ' + type : '');
+            setTimeout(() => { if (note.textContent === msg) note.textContent = ''; }, 4000);
+        }
 
-      sheet.classList.remove('pdf-capture');
-      restoreExportOverlays(overlayState);
-      controls.forEach(c=>c.style.visibility='');
+        // ============================================================
+        //  PDF EXPORT  –  uses html2canvas + jsPDF, matches print layout
+        // ============================================================
+        function prepExportOverlays(sheet) {
+            const entries = [];
+            sheet.querySelectorAll('select').forEach(sel => {
+                const div = document.createElement('div');
+                const text = sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : '';
+                div.textContent = (text || '').trim() === 'Select...' ? '' : text;
+                div.style.display = 'flex';
+                div.style.alignItems = 'center';
+                div.style.whiteSpace = 'nowrap';
+                div.style.overflow = 'hidden';
+                div.style.textOverflow = 'ellipsis';
+                div.style.color = sel.value === '' ? '#6b7280' : '#1a1d21';
+                div.style.fontFamily = "'Helvetica Neue',Arial,sans-serif";
+                div.style.boxSizing = 'border-box';
 
-      const imgData = canvas.toDataURL('image/png');
+                if (sel.classList.contains('info-select-month')) {
+                    div.style.flex = '1.4';
+                    div.style.fontSize = '9px';
+                    div.style.padding = '1px 2px';
+                    div.style.justifyContent = 'flex-start';
+                } else if (sel.classList.contains('info-select-year')) {
+                    div.style.flex = '0.8';
+                    div.style.fontSize = '9px';
+                    div.style.padding = '1px 2px';
+                    div.style.justifyContent = 'flex-start';
+                } else if (sel.classList.contains('info-select')) {
+                    div.style.flex = '1';
+                    div.style.fontSize = '9px';
+                    div.style.padding = '1px 2px';
+                    div.style.justifyContent = 'flex-start';
+                } else if (sel.classList.contains('type-select')) {
+                    div.style.width = '100%';
+                    div.style.height = '100%';
+                    div.style.fontSize = '8.5px';
+                    div.style.padding = '0 2px';
+                    div.style.justifyContent = 'flex-start';
+                } else if (sel.classList.contains('time-start') || sel.classList.contains('time-end')) {
+                    div.style.flex = '1';
+                    div.style.minWidth = '0';
+                    div.style.fontSize = '7.5px';
+                    div.style.padding = '0 1px';
+                    div.style.justifyContent = 'center';
+                    div.style.height = '100%';
+                } else {
+                    div.style.flex = '1';
+                    div.style.fontSize = '9px';
+                    div.style.padding = '0 2px';
+                    div.style.justifyContent = 'flex-start';
+                }
 
-      // Always preserve the true aspect ratio — scale down uniformly to
-      // fit within the page (minus a consistent margin on every side),
-      // then center. Fitting to the page's raw edges caused margin to
-      // land on only one axis (e.g. full-bleed left/right, letterboxed
-      // top/bottom), which read as a horizontal stretch — a fixed margin
-      // on all four sides fixes that and looks like a normal document.
-      const MARGIN = 36; // 0.5in
-      const availW = pageW - MARGIN * 2;
-      const availH = pageH - MARGIN * 2;
-      const scale = Math.min(availW / canvas.width, availH / canvas.height);
-      const w = canvas.width * scale;
-      const h = canvas.height * scale;
-      const x = (pageW - w) / 2;
-      const y = (pageH - h) / 2;
+                sel.parentElement.insertBefore(div, sel);
+                sel.style.display = 'none';
+                entries.push({ div, sel });
+            });
 
-      if(i>0) pdf.addPage();
-      pdf.addImage(imgData, 'PNG', x, y, w, h);
-    }
+            const dateNatives = [...sheet.querySelectorAll('.date-native')];
+            dateNatives.forEach(el => el.style.visibility = 'hidden');
 
-    pdf.save(`Off_Duty_Employment_Report_${new Date().toISOString().slice(0,10)}.pdf`);
-    showSaveNote('PDF exported.', 'success');
-  } catch(err){
-    showSaveNote('PDF export failed: ' + err.message, 'error');
-  }
+            // hide delete buttons, action buttons, sig clear buttons
+            sheet.querySelectorAll('.row-del, .table-actions, .sig-controls button, .remove-page-btn')
+                .forEach(el => el.style.display = 'none');
 
-  btn.textContent = origText;
-  btn.disabled = false;
-}
+            return { entries, dateNatives };
+        }
 
-// ============================================
-//  BUTTON BINDINGS
-// ============================================
+        function restoreExportOverlays(state) {
+            state.entries.forEach(({ div, sel }) => {
+                div.remove();
+                sel.style.display = '';
+            });
+            state.dateNatives.forEach(el => el.style.visibility = '');
+            // restore hidden elements
+            const sheet = state.dateNatives[0]?.closest?.('.sheet');
+            if (sheet) {
+                sheet.querySelectorAll('.row-del, .table-actions, .sig-controls button, .remove-page-btn')
+                    .forEach(el => el.style.display = '');
+            }
+        }
 
-document.getElementById('addPageBtn').addEventListener('click', addPage);
-document.getElementById('printBtn').addEventListener('click', ()=> window.print());
-document.getElementById('exportBtn').addEventListener('click', exportAsPDF);
-document.getElementById('clearBtn').addEventListener('click', clearAll);
+        async function exportAsPDF() {
+            const btn = document.getElementById('exportBtn');
+            const origText = btn.textContent;
+            btn.textContent = 'Generating PDF…';
+            btn.disabled = true;
 
-document.getElementById('saveBtn').addEventListener('click', ()=>{
-  exportStateToFile();
-  showSaveNote('Progress saved as .json file.', 'success');
-});
+            try {
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'pt', 'letter');
+                const pageW = pdf.internal.pageSize.getWidth(); // 612pt
+                const pageH = pdf.internal.pageSize.getHeight(); // 792pt
+                const sheets = [...document.querySelectorAll('.sheet')];
 
-document.getElementById('loadBtn').addEventListener('click', ()=>{
-  document.getElementById('fileInput').click();
-});
+                for (let i = 0; i < sheets.length; i++) {
+                    const sheet = sheets[i];
 
-document.getElementById('fileInput').addEventListener('change', (e)=>{
-  if (e.target.files.length > 0) {
-    importStateFromFile(e.target.files[0]);
-    e.target.value = '';
-  }
-});
+                    // Apply PDF-capture class to match print layout
+                    sheet.classList.add('pdf-capture');
 
-// ---- START ----
-attachAutoSave();
+                    // Overlay select values as text
+                    const overlayState = prepExportOverlays(sheet);
 
-const saved = loadFromLocalStorage();
-if (saved) {
-  applyState(saved);
-} else {
-  addPage();
-}
-</script>
+                    const canvas = await html2canvas(sheet, {
+                        scale: 3,
+                        backgroundColor: '#ffffff',
+                        useCORS: true,
+                        imageTimeout: 5000,
+                        logging: false,
+                    });
+
+                    // Remove capture class and restore overlays
+                    sheet.classList.remove('pdf-capture');
+                    restoreExportOverlays(overlayState);
+
+                    const imgData = canvas.toDataURL('image/png');
+
+                    // Fit with consistent margins (0.4in = ~29pt)
+                    const MARGIN = 29;
+                    const availW = pageW - MARGIN * 2;
+                    const availH = pageH - MARGIN * 2;
+                    const scale = Math.min(availW / canvas.width, availH / canvas.height);
+                    const w = canvas.width * scale;
+                    const h = canvas.height * scale;
+                    const x = (pageW - w) / 2;
+                    const y = (pageH - h) / 2;
+
+                    if (i > 0) pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', x, y, w, h);
+                }
+
+                pdf.save(`Off_Duty_Employment_Report_${new Date().toISOString().slice(0, 10)}.pdf`);
+                showSaveNote('PDF exported.', 'success');
+            } catch (err) {
+                showSaveNote('PDF export failed: ' + err.message, 'error');
+                console.error(err);
+            }
+
+            btn.textContent = origText;
+            btn.disabled = false;
+        }
+
+        // ============================================================
+        //  BUTTON BINDINGS
+        // ============================================================
+        document.getElementById('addPageBtn').addEventListener('click', addPage);
+        document.getElementById('printBtn').addEventListener('click', () => window.print());
+        document.getElementById('exportBtn').addEventListener('click', exportAsPDF);
+        document.getElementById('clearBtn').addEventListener('click', clearAll);
+
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            exportStateToFile();
+            showSaveNote('Progress saved as .json file.', 'success');
+        });
+
+        document.getElementById('loadBtn').addEventListener('click', () => {
+            document.getElementById('fileInput').click();
+        });
+
+        document.getElementById('fileInput').addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                importStateFromFile(e.target.files[0]);
+                e.target.value = '';
+            }
+        });
+
+        // ─── START ───
+        attachAutoSave();
+        const saved = loadFromLocalStorage();
+        if (saved) {
+            applyState(saved);
+        } else {
+            addPage();
+        }
+    </script>
 
 </body>
 </html>
