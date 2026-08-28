@@ -435,6 +435,18 @@
       .sig-section{grid-template-columns:1fr;}
       .toolbar-logo{height:32px;width:32px;}
     }
+
+    /* Applied only during PDF export, on the real DOM (no window/iframe
+       simulation) so capture is always predictable regardless of the
+       actual device screen size. */
+    .sheet.force-desktop{
+      width:900px !important;
+      max-width:none !important;
+      padding:36px 40px 28px !important;
+    }
+    .sheet.force-desktop .info-grid{grid-template-columns:1fr 1fr !important;}
+    .sheet.force-desktop .info-cell:nth-child(odd){border-right:1px solid var(--line-strong) !important;}
+    .sheet.force-desktop .sig-section{grid-template-columns:1fr 1fr !important;}
   </style>
 </head>
 <body>
@@ -1058,18 +1070,18 @@ async function exportAsPDF(){
       controls.forEach(c=>c.style.visibility='hidden');
       const overlayState = prepExportOverlays(sheet);
 
-      // Force a desktop-width layout for the capture, regardless of the
-      // actual device screen size — otherwise a phone-sized export would
-      // capture the narrow single-column mobile layout and then get
-      // stretched to full page width, distorting everything.
+      // Force the real element to a fixed desktop width for the capture —
+      // this reflows the actual DOM (no cloning/simulation), so the result
+      // is always predictable regardless of the device's screen size.
+      sheet.classList.add('force-desktop');
+
       const canvas = await html2canvas(sheet, {
         scale: 2,
         backgroundColor:'#ffffff',
-        useCORS:true,
-        windowWidth: 1000,
-        windowHeight: Math.max(sheet.scrollHeight + 200, 1400)
+        useCORS:true
       });
 
+      sheet.classList.remove('force-desktop');
       restoreExportOverlays(overlayState);
       controls.forEach(c=>c.style.visibility='');
 
