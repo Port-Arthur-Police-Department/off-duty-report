@@ -106,13 +106,19 @@
       align-items:center;
       justify-content:space-between;
       gap:14px;
-      margin:0 0 20px;
+      margin:0 0 24px;
     }
     .sheet-logo{
-      height:44px;
-      width:44px;
       object-fit:contain;
       flex-shrink:0;
+    }
+    .sheet-logo-badge{
+      height:125px;
+      width:125px;
+    }
+    .sheet-logo-patch{
+      height:100px;
+      width:100px;
     }
     h1{
       flex:1;
@@ -120,7 +126,6 @@
       font-size:22px;
       letter-spacing:.01em;
       margin:0;
-      line-height:44px;
     }
     h1 .cont{font-weight:400;color:var(--muted);font-size:16px;}
 
@@ -421,8 +426,9 @@
       .sig-section{margin-top:10px;gap:10px;}
       .sig-block{padding:5px 8px 6px;}
       .total-row{padding:3px 10px;font-size:11px;}
-      h1{font-size:16px;margin:0;line-height:28px;}
-      .sheet-logo{height:28px;width:28px;}
+      h1{font-size:16px;margin:0;}
+      .sheet-logo-badge{height:50px;width:50px;}
+      .sheet-logo-patch{height:40px;width:40px;}
       .sheet-header{margin-bottom:10px;}
       .sheet .page-tag{top:6px;right:10px;font-size:8px;}
     }
@@ -432,6 +438,8 @@
       .info-grid{grid-template-columns:1fr;}
       .info-cell:nth-child(odd){border-right:none;}
       .sig-section{grid-template-columns:1fr;}
+      .sheet-logo-badge{height:50px;width:50px;}
+      .sheet-logo-patch{height:40px;width:40px;}
     }
 
     /* Used only while capturing a page for "Export as PDF". Mirrors the
@@ -456,8 +464,9 @@
     .sheet.pdf-capture tbody td select.type-select{font-size:10px !important;padding:0 2px !important;}
     .sheet.pdf-capture .time-cell select{font-size:9px !important;padding:1px !important;}
     .sheet.pdf-capture .total-row{padding:3px 10px !important;font-size:11px !important;}
-    .sheet.pdf-capture h1{font-size:16px !important;margin:0 !important;line-height:28px !important;}
-    .sheet.pdf-capture .sheet-logo{height:28px !important;width:28px !important;}
+    .sheet.pdf-capture h1{font-size:16px !important;margin:0 !important;}
+    .sheet.pdf-capture .sheet-logo-badge{height:50px !important;width:50px !important;}
+    .sheet.pdf-capture .sheet-logo-patch{height:40px !important;width:40px !important;}
     .sheet.pdf-capture .sheet-header{margin-bottom:10px !important;}
   </style>
 </head>
@@ -626,9 +635,9 @@ function addPage(){
   sheet.innerHTML = `
     <div class="page-tag">Page ${pid}</div>
     <div class="sheet-header">
-      <img class="sheet-logo" src="badge.png" alt="" onerror="this.style.visibility='hidden'">
+      <img class="sheet-logo sheet-logo-badge" src="badge.png" alt="" onerror="this.style.visibility='hidden'">
       <h1>Secondary Employment Report ${isFirst ? '' : '<span class="cont">(Continued)</span>'}</h1>
-      <img class="sheet-logo" src="patch.png" alt="" onerror="this.style.visibility='hidden'">
+      <img class="sheet-logo sheet-logo-patch" src="patch.png" alt="" onerror="this.style.visibility='hidden'">
     </div>
     ${isFirst ? `
     <div class="info-grid">
