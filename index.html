@@ -250,16 +250,16 @@
       font-family:inherit;
       background:transparent;
       color:var(--ink);
-      pointer-events:none;
+      pointer-events:none;      /* let clicks pass to the date input behind */
       display:block;
     }
     input.date-display::placeholder{color:var(--muted);}
-    /* The invisible date input now covers the entire cell */
+    /* Invisible date input covers the entire cell */
     input.date-native{
       position:absolute;
-      inset:0;
-      width:auto;
-      height:auto;
+      inset:0;                 /* top, right, bottom, left = 0 */
+      width:100%;
+      height:100%;
       margin:0;
       padding:0;
       border:none;
@@ -271,6 +271,7 @@
       font-family:inherit;
       color-scheme:light;
       box-sizing:border-box;
+      pointer-events:auto;     /* ensure it receives clicks */
     }
     /* ----- */
 
@@ -582,9 +583,24 @@ function makeRow(){
   const dateNative = tr.querySelector('.date-native');
   const dateDisplay = tr.querySelector('.date-display');
   const dayInput = tr.querySelector('.day-input');
+  const dateCell = tr.querySelector('.date-cell');
 
-  // No extra click handler needed — the date input covers the whole cell via CSS (inset:0)
-  // and the cell's cursor:pointer gives visual feedback.
+  // ---- Date picker activation ----
+  // 1. The invisible date input covers the entire cell (via CSS).
+  // 2. As a fallback, we also listen for clicks on the cell and forward them.
+  dateCell.addEventListener('click', function(e) {
+    // If the click target is not the date-native itself, trigger the picker.
+    // This ensures that even if the date input doesn't capture the click (e.g., browser quirks),
+    // we programmatically open it.
+    if (e.target !== dateNative) {
+      // Use showPicker() if available (modern browsers) else fallback to click()
+      if (dateNative.showPicker) {
+        dateNative.showPicker();
+      } else {
+        dateNative.click();
+      }
+    }
+  });
 
   dateNative.addEventListener('change', ()=>{
     if (dateNative.value) {
@@ -980,136 +996,12 @@ function showSaveNote(msg, type){
 }
 
 // ============================================
-//  PDF EXPORT — dedicated auto-download, distinct from Print
-//  (Commented out along with the button. Uncomment both to re-enable.)
+//  PDF EXPORT — (commented out with the button)
 // ============================================
 /*
-function prepExportOverlays(sheet){
-  const entries = [];
-
-  sheet.querySelectorAll('select').forEach(sel=>{
-    const div = document.createElement('div');
-    const text = sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : '';
-    div.textContent = (text || '').trim() === 'Select...' ? '' : text;
-    div.style.display = 'flex';
-    div.style.alignItems = 'center';
-    div.style.whiteSpace = 'nowrap';
-    div.style.overflow = 'hidden';
-    div.style.textOverflow = 'ellipsis';
-    div.style.color = sel.value === '' ? '#6b7280' : '#1a1d21';
-    div.style.fontFamily = "'Helvetica Neue',Arial,sans-serif";
-    div.style.boxSizing = 'border-box';
-
-    if(sel.classList.contains('info-select-month')){
-      div.style.flex = '1.4';
-      div.style.fontSize = '12px';
-      div.style.padding = '2px 2px';
-      div.style.justifyContent = 'flex-start';
-    } else if(sel.classList.contains('info-select-year')){
-      div.style.flex = '0.8';
-      div.style.fontSize = '12px';
-      div.style.padding = '2px 2px';
-      div.style.justifyContent = 'flex-start';
-    } else if(sel.classList.contains('info-select')){
-      div.style.flex = '1';
-      div.style.fontSize = '12px';
-      div.style.padding = '2px 2px';
-      div.style.justifyContent = 'flex-start';
-    } else if(sel.classList.contains('type-select')){
-      div.style.width = '100%';
-      div.style.height = '100%';
-      div.style.fontSize = '10px';
-      div.style.padding = '0 2px';
-      div.style.justifyContent = 'flex-start';
-    } else if(sel.classList.contains('time-start') || sel.classList.contains('time-end')){
-      div.style.flex = '1';
-      div.style.minWidth = '0';
-      div.style.fontSize = '9px';
-      div.style.padding = '0 1px';
-      div.style.justifyContent = 'center';
-      div.style.height = '100%';
-    } else {
-      div.style.flex = '1';
-      div.style.fontSize = '10px';
-      div.style.padding = '0 2px';
-      div.style.justifyContent = 'flex-start';
-    }
-
-    sel.parentElement.insertBefore(div, sel);
-    sel.style.display = 'none';
-    entries.push({div, sel});
-  });
-
-  const dateNatives = [...sheet.querySelectorAll('.date-native')];
-  dateNatives.forEach(el=> el.style.visibility = 'hidden');
-
-  return { entries, dateNatives };
-}
-
-function restoreExportOverlays(state){
-  state.entries.forEach(({div, sel})=>{
-    div.remove();
-    sel.style.display = '';
-  });
-  state.dateNatives.forEach(el=> el.style.visibility = '');
-}
-
-async function exportAsPDF(){
-  const btn = document.getElementById('exportBtn');
-  const origText = btn.textContent;
-  btn.textContent = 'Generating PDF...';
-  btn.disabled = true;
-
-  try{
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF('p', 'pt', 'letter');
-    const pageW = pdf.internal.pageSize.getWidth();
-    const pageH = pdf.internal.pageSize.getHeight();
-    const sheets = [...document.querySelectorAll('.sheet')];
-
-    for(let i=0;i<sheets.length;i++){
-      const sheet = sheets[i];
-      const controls = sheet.querySelectorAll('.row-del,.table-actions,.sig-controls');
-      controls.forEach(c=>c.style.visibility='hidden');
-      const overlayState = prepExportOverlays(sheet);
-
-      sheet.classList.add('pdf-capture');
-
-      const canvas = await html2canvas(sheet, {
-        scale: 3,
-        backgroundColor:'#ffffff',
-        useCORS:true,
-        imageTimeout: 5000
-      });
-
-      sheet.classList.remove('pdf-capture');
-      restoreExportOverlays(overlayState);
-      controls.forEach(c=>c.style.visibility='');
-
-      const imgData = canvas.toDataURL('image/png');
-
-      const MARGIN = 36;
-      const availW = pageW - MARGIN * 2;
-      const availH = pageH - MARGIN * 2;
-      const scale = Math.min(availW / canvas.width, availH / canvas.height);
-      const w = canvas.width * scale;
-      const h = canvas.height * scale;
-      const x = (pageW - w) / 2;
-      const y = (pageH - h) / 2;
-
-      if(i>0) pdf.addPage();
-      pdf.addImage(imgData, 'PNG', x, y, w, h);
-    }
-
-    pdf.save(`Off_Duty_Employment_Report_${new Date().toISOString().slice(0,10)}.pdf`);
-    showSaveNote('PDF exported.', 'success');
-  } catch(err){
-    showSaveNote('PDF export failed: ' + err.message, 'error');
-  }
-
-  btn.textContent = origText;
-  btn.disabled = false;
-}
+function prepExportOverlays(sheet){ ... }
+function restoreExportOverlays(state){ ... }
+async function exportAsPDF(){ ... }
 */
 
 // ============================================
@@ -1118,7 +1010,6 @@ async function exportAsPDF(){
 
 document.getElementById('addPageBtn').addEventListener('click', addPage);
 document.getElementById('printBtn').addEventListener('click', ()=> window.print());
-// The Export button is commented out, so we comment out its listener too.
 // document.getElementById('exportBtn').addEventListener('click', exportAsPDF);
 document.getElementById('clearBtn').addEventListener('click', clearAll);
 
