@@ -1,7 +1,8 @@
 # off-duty-report
 
-need to pickuo soth claide.ai
+For the PWA icon to actually work, save all of these in the same folder:
 
-Also clicking the  date cell is not activating the date picker
-
-I want the two icons on the exported pdf, also  the information input in the pdf is not lining up properly.
+Secondary_Employment_Report_Interactive.html
+manifest.webmanifest
+badge.png, patch.png (report logos)
+icon.png (a square image, ideally 512×512, used as the home-screen icon)
