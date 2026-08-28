@@ -27,23 +27,22 @@
       max-width:900px;
       margin:0 auto 20px;
       display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-      justify-content:space-between;
+      flex-direction:column;
+      gap:14px;
       background:var(--paper);
       border:1px solid var(--line);
       border-radius:10px;
-      padding:12px 16px;
+      padding:14px 16px;
     }
-    .toolbar-brand{
+    .toolbar-header{
       display:flex;
       align-items:center;
-      gap:10px;
+      justify-content:center;
+      gap:14px;
     }
     .toolbar-logo{
-      height:36px;
-      width:36px;
+      height:40px;
+      width:40px;
       object-fit:contain;
       border-radius:4px;
       flex-shrink:0;
@@ -54,9 +53,11 @@
       justify-content:center;
       background:var(--accent-soft);
       color:var(--muted);
-      font-size:9px;
+      font-size:8px;
       text-align:center;
       border:1px dashed var(--line);
+      line-height:1.2;
+      padding:2px;
     }
     .toolbar-title{
       font-size:13px;
@@ -65,7 +66,7 @@
       letter-spacing:.02em;
       text-transform:uppercase;
     }
-    .btn-group{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+    .btn-group{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center;}
     button{
       font-family:inherit;
       font-size:13px;
@@ -420,17 +421,18 @@
       .info-grid{grid-template-columns:1fr;}
       .info-cell:nth-child(odd){border-right:none;}
       .sig-section{grid-template-columns:1fr;}
-      .toolbar-brand{order:-1;width:100%;justify-content:space-between;}
+      .toolbar-logo{height:32px;width:32px;}
     }
   </style>
 </head>
 <body>
 
 <div class="toolbar">
-  <div class="toolbar-brand">
+  <div class="toolbar-header">
     <img class="toolbar-logo" id="logoLeft" src="badge.png" alt="Badge">
+    <div class="toolbar-title">Secondary Employment Report — Digital</div>
+    <img class="toolbar-logo" id="logoRight" src="patch.png" alt="Patch">
   </div>
-  <div class="toolbar-title">Secondary Employment Report — Digital</div>
   <div class="btn-group">
     <button class="btn-secondary" id="addPageBtn">+ Add Page (20 rows)</button>
     <button class="btn-secondary" id="printBtn">🖨️ Print</button>
@@ -438,9 +440,6 @@
     <button class="btn-secondary" id="saveBtn">💾 Save Progress</button>
     <button class="btn-secondary" id="loadBtn">📂 Load Progress</button>
     <button class="btn-danger" id="clearBtn">🗑️ Clear All</button>
-  </div>
-  <div class="toolbar-brand">
-    <img class="toolbar-logo" id="logoRight" src="patch.png" alt="Patch">
   </div>
   <input type="file" id="fileInput" accept=".json" style="display:none">
 </div>
@@ -1027,10 +1026,16 @@ async function exportAsPDF(){
       controls.forEach(c=>c.style.visibility='hidden');
       const overlayState = prepExportOverlays(sheet);
 
+      // Force a desktop-width layout for the capture, regardless of the
+      // actual device screen size — otherwise a phone-sized export would
+      // capture the narrow single-column mobile layout and then get
+      // stretched to full page width, distorting everything.
       const canvas = await html2canvas(sheet, {
-        scale: 3,
+        scale: 2,
         backgroundColor:'#ffffff',
-        useCORS:true
+        useCORS:true,
+        windowWidth: 1000,
+        windowHeight: Math.max(sheet.scrollHeight + 200, 1400)
       });
 
       restoreExportOverlays(overlayState);
