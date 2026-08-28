@@ -1095,11 +1095,15 @@ async function exportAsPDF(){
       const imgData = canvas.toDataURL('image/png');
 
       // Always preserve the true aspect ratio — scale down uniformly to
-      // fit within the page on whichever axis is the tighter constraint,
-      // then center. (A previous version force-fit height to the page
-      // when content ran long, which squashed/stretched the image —
-      // that's fixed here by never scaling width and height differently.)
-      const scale = Math.min(pageW / canvas.width, pageH / canvas.height);
+      // fit within the page (minus a consistent margin on every side),
+      // then center. Fitting to the page's raw edges caused margin to
+      // land on only one axis (e.g. full-bleed left/right, letterboxed
+      // top/bottom), which read as a horizontal stretch — a fixed margin
+      // on all four sides fixes that and looks like a normal document.
+      const MARGIN = 36; // 0.5in
+      const availW = pageW - MARGIN * 2;
+      const availH = pageH - MARGIN * 2;
+      const scale = Math.min(availW / canvas.width, availH / canvas.height);
       const w = canvas.width * scale;
       const h = canvas.height * scale;
       const x = (pageW - w) / 2;
