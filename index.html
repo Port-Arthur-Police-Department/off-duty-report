@@ -427,8 +427,8 @@
       .sig-block{padding:5px 8px 6px;}
       .total-row{padding:3px 10px;font-size:11px;}
       h1{font-size:16px;margin:0;}
-      .sheet-logo-badge{height:50px;width:50px;}
-      .sheet-logo-patch{height:40px;width:40px;}
+      .sheet-logo-badge{height:90px;width:90px;}
+      .sheet-logo-patch{height:72px;width:72px;}
       .sheet-header{margin-bottom:10px;}
       .sheet .page-tag{top:6px;right:10px;font-size:8px;}
     }
@@ -465,8 +465,8 @@
     .sheet.pdf-capture .time-cell select{font-size:9px !important;padding:1px !important;}
     .sheet.pdf-capture .total-row{padding:3px 10px !important;font-size:11px !important;}
     .sheet.pdf-capture h1{font-size:16px !important;margin:0 !important;}
-    .sheet.pdf-capture .sheet-logo-badge{height:50px !important;width:50px !important;}
-    .sheet.pdf-capture .sheet-logo-patch{height:40px !important;width:40px !important;}
+    .sheet.pdf-capture .sheet-logo-badge{height:90px !important;width:90px !important;}
+    .sheet.pdf-capture .sheet-logo-patch{height:72px !important;width:72px !important;}
     .sheet.pdf-capture .sheet-header{margin-bottom:10px !important;}
   </style>
 </head>
@@ -1082,9 +1082,10 @@ async function exportAsPDF(){
       sheet.classList.add('pdf-capture');
 
       const canvas = await html2canvas(sheet, {
-        scale: 2,
+        scale: 3,
         backgroundColor:'#ffffff',
-        useCORS:true
+        useCORS:true,
+        imageTimeout: 5000
       });
 
       sheet.classList.remove('pdf-capture');
