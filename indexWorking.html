@@ -3,7 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Secondary Employment Report</title>
+  <title>PAPD - Off-Duty Employment Report</title>
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Off-Duty Employment">
+  <meta name="theme-color" content="#1e3a5f">
   <style>
     :root{
       --ink:#1a1d21;
@@ -13,6 +20,7 @@
       --muted:#6b7280;
       --accent:#1e3a5f;
       --accent-soft:#eef2f7;
+      --row-h:30px;
     }
     *{box-sizing:border-box;}
     body{
@@ -26,14 +34,18 @@
       max-width:900px;
       margin:0 auto 20px;
       display:flex;
-      gap:10px;
-      flex-wrap:wrap;
-      align-items:center;
-      justify-content:space-between;
+      flex-direction:column;
+      gap:14px;
       background:var(--paper);
       border:1px solid var(--line);
       border-radius:10px;
-      padding:12px 16px;
+      padding:14px 16px;
+    }
+    .toolbar-header{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:14px;
     }
     .toolbar-title{
       font-size:13px;
@@ -42,7 +54,7 @@
       letter-spacing:.02em;
       text-transform:uppercase;
     }
-    .btn-group{display:flex;gap:8px;flex-wrap:wrap;}
+    .btn-group{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center;}
     button{
       font-family:inherit;
       font-size:13px;
@@ -61,6 +73,17 @@
     .btn-danger{background:#fff;color:#b3261e;border-color:#f2c9c6;}
     .btn-danger:hover{background:#fdf1f0;}
 
+    .save-note{
+      max-width:900px;
+      margin:-10px auto 16px;
+      font-size:12px;
+      color:var(--muted);
+      text-align:right;
+      min-height:16px;
+    }
+    .save-note.success{color:#1a7a3d;}
+    .save-note.error{color:#b3261e;}
+
     .sheet{
       max-width:900px;
       margin:0 auto 28px;
@@ -69,6 +92,7 @@
       border-radius:10px;
       padding:36px 40px 28px;
       position:relative;
+      page-break-inside:avoid;
     }
     .sheet .page-tag{
       position:absolute;
@@ -77,11 +101,31 @@
       font-size:11px;
       color:var(--muted);
     }
+    .sheet-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:14px;
+      margin:0 0 24px;
+    }
+    .sheet-logo{
+      flex-shrink:0;
+      width:auto;
+    }
+    .sheet-logo-badge{
+      height:125px;
+      max-width:125px;
+    }
+    .sheet-logo-patch{
+      height:100px;
+      max-width:100px;
+    }
     h1{
+      flex:1;
       text-align:center;
       font-size:22px;
       letter-spacing:.01em;
-      margin:0 0 20px;
+      margin:0;
     }
     h1 .cont{font-weight:400;color:var(--muted);font-size:16px;}
 
@@ -136,6 +180,7 @@
       width:100%;
       border-collapse:collapse;
       margin-bottom:4px;
+      table-layout:fixed;
     }
     thead th{
       border:1px solid var(--line-strong);
@@ -147,28 +192,34 @@
       padding:8px 6px;
       font-weight:700;
     }
+    /* All body cells share one fixed row height so every column — including
+       the date picker column — lines up identically. */
+    tbody tr{height:var(--row-h);}
     tbody td{
       border:1px solid var(--line);
       padding:0;
-      height:30px;
+      height:var(--row-h);
+      max-height:var(--row-h);
       position:relative;
+      overflow:hidden;
     }
     tbody td input{
       width:100%;
-      height:100%;
+      height:var(--row-h);
       border:none;
       outline:none;
       font-size:12.5px;
       padding:0 6px;
       font-family:inherit;
       background:transparent;
+      display:block;
     }
-    tbody td input.day-input {
-      text-align: center;
+    tbody td input.day-input{
+      text-align:center;
     }
     tbody td select.type-select{
       width:100%;
-      height:100%;
+      height:var(--row-h);
       border:none;
       outline:none;
       font-size:12.5px;
@@ -184,28 +235,33 @@
       position:relative;
       display:flex;
       align-items:center;
-      height:100%;
+      height:var(--row-h);
+      max-height:var(--row-h);
+      cursor:pointer;
+      padding:0;
     }
     input.date-display{
       width:100%;
-      height:100%;
+      height:var(--row-h);
       border:none;
       outline:none;
       font-size:12.5px;
-      padding:0 24px 0 6px;
+      padding:0 6px;
       font-family:inherit;
       background:transparent;
       color:var(--ink);
       pointer-events:none;
+      display:block;
     }
     input.date-display::placeholder{color:var(--muted);}
     input.date-native{
       position:absolute;
-      inset:0;
+      top:0;
+      left:0;
       width:100%;
-      height:100%;
+      height:var(--row-h);
       margin:0;
-      padding:0 24px 0 6px;
+      padding:0;
       border:none;
       background:transparent;
       opacity:0;
@@ -214,20 +270,7 @@
       font-size:12.5px;
       font-family:inherit;
       color-scheme:light;
-    }
-    .date-icon{
-      position:absolute;
-      right:4px;
-      top:50%;
-      transform:translateY(-50%);
-      border:none;
-      background:none;
-      padding:0;
-      font-size:12px;
-      color:var(--muted);
-      line-height:1;
-      pointer-events:none;
-      z-index:1;
+      box-sizing:border-box;
     }
     tbody td input:focus{background:#fbfcfe;}
     tbody tr:hover td{background:#fafbfc;}
@@ -254,7 +297,7 @@
       align-items:center;
       gap:4px;
       padding:0 4px;
-      height:100%;
+      height:var(--row-h);
     }
     .time-cell select{
       flex:1;
@@ -264,9 +307,9 @@
       font-size:11.5px;
       font-family:inherit;
       background:transparent;
-      padding:4px 2px;
+      padding:0 2px;
       color:var(--ink);
-      height:100%;
+      height:var(--row-h);
     }
     .time-cell select:invalid,
     .time-cell select.placeholder{color:var(--muted);}
@@ -349,21 +392,45 @@
       color:var(--muted);
     }
 
-    @media print{
+    /* ===== PRINT STYLES ===== */
+    @page{
+      size: letter;
+      margin: 0.3in;
+    }
+
+    @media print {
       body{background:#fff;padding:0;}
       .toolbar{display:none;}
+      .save-note{display:none;}
       .sheet{
         box-shadow:none;
         border:none;
         border-radius:0;
         margin:0 auto;
+        page-break-inside:avoid;
+        padding:12px 20px 10px;
+      }
+      .sheet:not(:last-child){
         page-break-after:always;
-        padding:24px 30px;
       }
       .row-del,.table-actions,.sig-controls button{display:none;}
       .time-cell select{appearance:none;-webkit-appearance:none;background:transparent;}
       thead th{background:#eee !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
       .total-row{background:#eee !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+      tbody td{height:22px;}
+      tbody td input{font-size:10px;padding:0 4px;}
+      tbody td select.type-select{font-size:10px;padding:0 2px;}
+      .time-cell select{font-size:9px;padding:1px;}
+      .sig-pad-wrap canvas.sig-pad{height:44px;}
+      .info-grid{margin-bottom:10px;}
+      .sig-section{margin-top:10px;gap:10px;}
+      .sig-block{padding:5px 8px 6px;}
+      .total-row{padding:3px 10px;font-size:11px;}
+      h1{font-size:16px;margin:0;}
+      .sheet-logo-badge{height:90px;max-width:90px;}
+      .sheet-logo-patch{height:72px;max-width:72px;}
+      .sheet-header{margin-bottom:10px;}
+      .sheet .page-tag{top:6px;right:10px;font-size:8px;}
     }
 
     @media (max-width:640px){
@@ -371,23 +438,56 @@
       .info-grid{grid-template-columns:1fr;}
       .info-cell:nth-child(odd){border-right:none;}
       .sig-section{grid-template-columns:1fr;}
+      .sheet-logo-badge{height:50px;max-width:50px;}
+      .sheet-logo-patch{height:40px;max-width:40px;}
     }
+
+    /* Used only while capturing a page for "Export as PDF". Mirrors the
+       compact print sizing above (already verified to fit one page) and
+       forces the two-column desktop layout, regardless of the actual
+       device screen size, so the export is always consistent. */
+    .sheet.pdf-capture{
+      width:900px !important;
+      max-width:none !important;
+      box-shadow:none;
+      border:none;
+      border-radius:0;
+      padding:12px 20px 10px !important;
+    }
+    .sheet.pdf-capture .info-grid{grid-template-columns:1fr 1fr !important;margin-bottom:10px !important;}
+    .sheet.pdf-capture .info-cell:nth-child(odd){border-right:1px solid var(--line-strong) !important;}
+    .sheet.pdf-capture .sig-section{grid-template-columns:1fr 1fr !important;margin-top:10px !important;gap:10px !important;}
+    .sheet.pdf-capture .sig-block{padding:5px 8px 6px !important;}
+    .sheet.pdf-capture .sig-pad-wrap canvas.sig-pad{height:44px !important;}
+    .sheet.pdf-capture tbody td{height:22px !important;}
+    .sheet.pdf-capture tbody td input{font-size:10px !important;padding:0 4px !important;}
+    .sheet.pdf-capture tbody td select.type-select{font-size:10px !important;padding:0 2px !important;}
+    .sheet.pdf-capture .time-cell select{font-size:9px !important;padding:1px !important;}
+    .sheet.pdf-capture .total-row{padding:3px 10px !important;font-size:11px !important;}
+    .sheet.pdf-capture h1{font-size:16px !important;margin:0 !important;}
+    .sheet.pdf-capture .sheet-logo-badge{height:90px !important;width:auto !important;max-width:90px !important;}
+    .sheet.pdf-capture .sheet-logo-patch{height:72px !important;width:auto !important;max-width:72px !important;}
+    .sheet.pdf-capture .sheet-header{margin-bottom:10px !important;}
   </style>
 </head>
 <body>
 
 <div class="toolbar">
-  <div class="toolbar-title">Secondary Employment Report — Digital</div>
+  <div class="toolbar-header">
+    <div class="toolbar-title">Off-Duty Employment Report — Digital</div>
+  </div>
   <div class="btn-group">
-    <button class="btn-secondary" id="addPageBtn">+ Add Page (25 rows)</button>
-    <button class="btn-secondary" id="printBtn">Print</button>
-    <button class="btn-primary" id="exportBtn">Export as PDF</button>
+    <button class="btn-secondary" id="addPageBtn">+ Add Page (20 rows)</button>
+    <button class="btn-secondary" id="printBtn">🖨️ Print</button>
+    <button class="btn-primary" id="exportBtn">⬇️ Export as PDF</button>
     <button class="btn-secondary" id="saveBtn">💾 Save Progress</button>
     <button class="btn-secondary" id="loadBtn">📂 Load Progress</button>
     <button class="btn-danger" id="clearBtn">🗑️ Clear All</button>
   </div>
   <input type="file" id="fileInput" accept=".json" style="display:none">
 </div>
+
+<div class="save-note" id="saveNote"></div>
 
 <div id="pages"></div>
 
@@ -396,7 +496,11 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
-const ROWS_PER_PAGE = 25;
+// ============================================
+//  CONFIGURATION – 20 rows per page
+// ============================================
+const ROWS_PER_PAGE = 20;
+
 const pagesEl = document.getElementById('pages');
 let pageCount = 0;
 const sigPads = {};
@@ -450,15 +554,14 @@ function makeRow(){
   const tr = document.createElement('tr');
   tr.innerHTML = `
     <td class="date-cell">
-      <input type="text" class="date-display" placeholder="--/--/--" readonly tabindex="-1">
-      <button type="button" class="date-icon" tabindex="-1">&#128197;</button>
+      <input type="text" class="date-display" placeholder=" " readonly tabindex="-1">
       <input type="date" class="date-native" aria-label="Date worked">
     </td>
     <td><input type="text" class="day-input" placeholder="--" readonly tabindex="-1"></td>
     <td><input type="text" class="employer-input" placeholder=""></td>
     <td>
       <select class="type-select">
-        <option value="" class="placeholder">Select...</option>
+        <option value="" class="placeholder"> </option>
         <option value="Traffic">Traffic</option>
         <option value="Security">Security</option>
         <option value="Other">Other</option>
@@ -473,8 +576,8 @@ function makeRow(){
     <td class="row-del" title="Clear row">✕</td>
   `;
 
-  const dateDisplay = tr.querySelector('.date-display');
   const dateNative = tr.querySelector('.date-native');
+  const dateDisplay = tr.querySelector('.date-display');
   const dayInput = tr.querySelector('.day-input');
 
   dateNative.addEventListener('change', ()=>{
@@ -531,7 +634,11 @@ function addPage(){
 
   sheet.innerHTML = `
     <div class="page-tag">Page ${pid}</div>
-    <h1>Secondary Employment Report ${isFirst ? '' : '<span class="cont">(Continued)</span>'}</h1>
+    <div class="sheet-header">
+      <img class="sheet-logo sheet-logo-badge" src="badge.png" alt="" onerror="this.style.visibility='hidden'">
+      <h1>PAPD - Off-Duty Employment Report ${isFirst ? '' : '<span class="cont">(Continued)</span>'}</h1>
+      <img class="sheet-logo sheet-logo-patch" src="patch.png" alt="" onerror="this.style.visibility='hidden'">
+    </div>
     ${isFirst ? `
     <div class="info-grid">
       <div class="info-cell"><label>Officer:</label><input type="text"></div>
@@ -820,16 +927,16 @@ function importStateFromFile(file) {
         throw new Error('Invalid file structure.');
       }
       applyState(state);
-      alert('✅ File imported successfully!');
+      showSaveNote('Progress loaded.', 'success');
     } catch (err) {
-      alert('❌ Failed to import file: ' + err.message);
+      showSaveNote('Failed to import file: ' + err.message, 'error');
     }
   };
   reader.readAsText(file);
 }
 
 function clearAll() {
-  if (!confirm('⚠️ This will delete ALL data. Are you sure?')) return;
+  if (!confirm('This will delete ALL data. Are you sure?')) return;
   
   document.querySelectorAll('.sheet').forEach(el => el.remove());
   pageCount = 0;
@@ -837,7 +944,7 @@ function clearAll() {
   
   addPage();
   localStorage.removeItem(STORAGE_KEY);
-  alert('✅ All data cleared.');
+  showSaveNote('All data cleared.', 'success');
 }
 
 function attachAutoSave() {
@@ -859,17 +966,175 @@ function attachAutoSave() {
   });
 }
 
+function showSaveNote(msg, type){
+  const note = document.getElementById('saveNote');
+  note.textContent = msg;
+  note.className = 'save-note' + (type ? ' ' + type : '');
+  setTimeout(()=>{ if(note.textContent === msg) note.textContent = ''; }, 4000);
+}
+
+// ============================================
+//  PDF EXPORT — dedicated auto-download, distinct from Print
+// ============================================
+
+function prepExportOverlays(sheet){
+  const entries = [];
+
+  // Replace every <select> with a plain text element that takes the exact
+  // same flex slot in the row — native dropdown rendering isn't captured
+  // accurately by the PDF snapshot process, and an absolutely-positioned
+  // overlay would cover sibling elements (like the "Rank:" label) instead
+  // of just the dropdown itself.
+  sheet.querySelectorAll('select').forEach(sel=>{
+    const div = document.createElement('div');
+    const text = sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : '';
+    div.textContent = (text || '').trim() === 'Select...' ? '' : text;
+    div.style.display = 'flex';
+    div.style.alignItems = 'center';
+    div.style.whiteSpace = 'nowrap';
+    div.style.overflow = 'hidden';
+    div.style.textOverflow = 'ellipsis';
+    div.style.color = sel.value === '' ? '#6b7280' : '#1a1d21';
+    div.style.fontFamily = "'Helvetica Neue',Arial,sans-serif";
+    div.style.boxSizing = 'border-box';
+
+    if(sel.classList.contains('info-select-month')){
+      div.style.flex = '1.4';
+      div.style.fontSize = '12px';
+      div.style.padding = '2px 2px';
+      div.style.justifyContent = 'flex-start';
+    } else if(sel.classList.contains('info-select-year')){
+      div.style.flex = '0.8';
+      div.style.fontSize = '12px';
+      div.style.padding = '2px 2px';
+      div.style.justifyContent = 'flex-start';
+    } else if(sel.classList.contains('info-select')){
+      div.style.flex = '1';
+      div.style.fontSize = '12px';
+      div.style.padding = '2px 2px';
+      div.style.justifyContent = 'flex-start';
+    } else if(sel.classList.contains('type-select')){
+      div.style.width = '100%';
+      div.style.height = '100%';
+      div.style.fontSize = '10px';
+      div.style.padding = '0 2px';
+      div.style.justifyContent = 'flex-start';
+    } else if(sel.classList.contains('time-start') || sel.classList.contains('time-end')){
+      div.style.flex = '1';
+      div.style.minWidth = '0';
+      div.style.fontSize = '9px';
+      div.style.padding = '0 1px';
+      div.style.justifyContent = 'center';
+      div.style.height = '100%';
+    } else {
+      div.style.flex = '1';
+      div.style.fontSize = '10px';
+      div.style.padding = '0 2px';
+      div.style.justifyContent = 'flex-start';
+    }
+
+    // Insert the replacement in the exact same spot in the flex row, then
+    // fully remove the select from layout (display:none, not just hidden)
+    // so it doesn't reserve extra space alongside the new element.
+    sel.parentElement.insertBefore(div, sel);
+    sel.style.display = 'none';
+    entries.push({div, sel});
+  });
+
+  // Hide the invisible native date-picker control — the formatted text
+  // field (date-display) already shows the chosen date.
+  const dateNatives = [...sheet.querySelectorAll('.date-native')];
+  dateNatives.forEach(el=> el.style.visibility = 'hidden');
+
+  return { entries, dateNatives };
+}
+
+function restoreExportOverlays(state){
+  state.entries.forEach(({div, sel})=>{
+    div.remove();
+    sel.style.display = '';
+  });
+  state.dateNatives.forEach(el=> el.style.visibility = '');
+}
+
+async function exportAsPDF(){
+  const btn = document.getElementById('exportBtn');
+  const origText = btn.textContent;
+  btn.textContent = 'Generating PDF...';
+  btn.disabled = true;
+
+  try{
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'pt', 'letter');
+    const pageW = pdf.internal.pageSize.getWidth();   // 612pt
+    const pageH = pdf.internal.pageSize.getHeight();  // 792pt
+    const sheets = [...document.querySelectorAll('.sheet')];
+
+    for(let i=0;i<sheets.length;i++){
+      const sheet = sheets[i];
+      const controls = sheet.querySelectorAll('.row-del,.table-actions,.sig-controls');
+      controls.forEach(c=>c.style.visibility='hidden');
+      const overlayState = prepExportOverlays(sheet);
+
+      // Force the same compact, two-column layout the print stylesheet
+      // uses (already verified to fit one page) — regardless of the
+      // device's actual screen size — so captures are always consistent.
+      sheet.classList.add('pdf-capture');
+
+      const canvas = await html2canvas(sheet, {
+        scale: 3,
+        backgroundColor:'#ffffff',
+        useCORS:true,
+        imageTimeout: 5000
+      });
+
+      sheet.classList.remove('pdf-capture');
+      restoreExportOverlays(overlayState);
+      controls.forEach(c=>c.style.visibility='');
+
+      const imgData = canvas.toDataURL('image/png');
+
+      // Always preserve the true aspect ratio — scale down uniformly to
+      // fit within the page (minus a consistent margin on every side),
+      // then center. Fitting to the page's raw edges caused margin to
+      // land on only one axis (e.g. full-bleed left/right, letterboxed
+      // top/bottom), which read as a horizontal stretch — a fixed margin
+      // on all four sides fixes that and looks like a normal document.
+      const MARGIN = 36; // 0.5in
+      const availW = pageW - MARGIN * 2;
+      const availH = pageH - MARGIN * 2;
+      const scale = Math.min(availW / canvas.width, availH / canvas.height);
+      const w = canvas.width * scale;
+      const h = canvas.height * scale;
+      const x = (pageW - w) / 2;
+      const y = (pageH - h) / 2;
+
+      if(i>0) pdf.addPage();
+      pdf.addImage(imgData, 'PNG', x, y, w, h);
+    }
+
+    pdf.save(`Off_Duty_Employment_Report_${new Date().toISOString().slice(0,10)}.pdf`);
+    showSaveNote('PDF exported.', 'success');
+  } catch(err){
+    showSaveNote('PDF export failed: ' + err.message, 'error');
+  }
+
+  btn.textContent = origText;
+  btn.disabled = false;
+}
+
 // ============================================
 //  BUTTON BINDINGS
 // ============================================
 
 document.getElementById('addPageBtn').addEventListener('click', addPage);
 document.getElementById('printBtn').addEventListener('click', ()=> window.print());
+document.getElementById('exportBtn').addEventListener('click', exportAsPDF);
 document.getElementById('clearBtn').addEventListener('click', clearAll);
 
 document.getElementById('saveBtn').addEventListener('click', ()=>{
   exportStateToFile();
-  alert('✅ Progress saved as .json file.');
+  showSaveNote('Progress saved as .json file.', 'success');
 });
 
 document.getElementById('loadBtn').addEventListener('click', ()=>{
@@ -880,238 +1145,6 @@ document.getElementById('fileInput').addEventListener('change', (e)=>{
   if (e.target.files.length > 0) {
     importStateFromFile(e.target.files[0]);
     e.target.value = '';
-  }
-});
-
-// ============================================
-//  PDF EXPORT - FIXED HEADER ALIGNMENT
-// ============================================
-
-function createPDFOverlay(element) {
-  const parent = element.parentElement;
-  const parentRect = parent.getBoundingClientRect();
-  const rect = element.getBoundingClientRect();
-  
-  // Get computed styles
-  const cs = window.getComputedStyle(element);
-  
-  // Create overlay div
-  const overlay = document.createElement('div');
-  
-  // Set text based on element type
-  if (element.tagName === 'SELECT') {
-    const selectedIndex = element.selectedIndex;
-    overlay.textContent = selectedIndex >= 0 ? element.options[selectedIndex].text : '';
-    overlay.style.color = element.value === '' ? '#6b7280' : '#1a1d21';
-  } else {
-    overlay.textContent = element.value || '';
-    overlay.style.color = '#1a1d21';
-  }
-  
-  // Calculate position relative to parent
-  const left = rect.left - parentRect.left;
-  const top = rect.top - parentRect.top;
-  
-  // Position overlay exactly over the element using absolute positioning
-  overlay.style.cssText = `
-    position: absolute;
-    left: ${left}px;
-    top: ${top}px;
-    width: ${rect.width}px;
-    height: ${rect.height}px;
-    display: flex;
-    align-items: center;
-    padding: ${cs.padding};
-    font-family: ${cs.fontFamily};
-    font-size: ${cs.fontSize};
-    font-weight: ${cs.fontWeight};
-    color: ${overlay.style.color || '#1a1d21'};
-    background: transparent;
-    pointer-events: none;
-    z-index: 1000;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    box-sizing: border-box;
-  `;
-  
-  // Special handling for different element types
-  if (element.closest('.time-cell')) {
-    overlay.style.padding = '4px 2px';
-  }
-  
-  if (element.classList.contains('date-display')) {
-    overlay.style.paddingRight = '24px';
-  }
-  
-  if (element.classList.contains('hrs-input') || element.classList.contains('day-input')) {
-    overlay.style.justifyContent = 'center';
-  }
-  
-  if (element.classList.contains('type-select')) {
-    overlay.style.width = '100%';
-    overlay.style.padding = '0 4px';
-  }
-  
-  // For header fields in info-grid
-  if (element.closest('.info-cell')) {
-    // Adjust padding to match header style
-    overlay.style.padding = '3px 2px';
-    overlay.style.borderBottom = '1px solid #c9cdd3';
-    overlay.style.borderRadius = '0';
-    overlay.style.backgroundColor = 'transparent';
-    overlay.style.fontSize = '13px';
-    
-    // For Month/Year selects, preserve flex ratios
-    if (element.classList.contains('info-select-month')) {
-      overlay.style.width = (rect.width * 1.4) + 'px';
-      overlay.style.flex = '1.4';
-    }
-    if (element.classList.contains('info-select-year')) {
-      overlay.style.width = (rect.width * 0.8) + 'px';
-      overlay.style.flex = '0.8';
-    }
-    
-    // For the Officer input
-    if (element.tagName === 'INPUT' && !element.classList.contains('date-display')) {
-      overlay.style.borderBottom = '1px solid #c9cdd3';
-    }
-  }
-  
-  return overlay;
-}
-
-async function captureSheetForPDF(sheet) {
-  // Store original elements and their states
-  const originalStates = [];
-  
-  // Hide interactive elements
-  const controls = sheet.querySelectorAll('.row-del, .table-actions, .sig-controls button');
-  controls.forEach(el => {
-    originalStates.push({ element: el, display: el.style.display });
-    el.style.display = 'none';
-  });
-  
-  // Hide date icons
-  const dateIcons = sheet.querySelectorAll('.date-icon');
-  dateIcons.forEach(el => {
-    originalStates.push({ element: el, display: el.style.display });
-    el.style.display = 'none';
-  });
-  
-  // Make sure parent containers have position:relative for absolute positioning
-  const allParents = new Set();
-  const elements = sheet.querySelectorAll('input, select');
-  elements.forEach(el => {
-    const parent = el.parentElement;
-    if (!allParents.has(parent)) {
-      allParents.add(parent);
-      const pos = window.getComputedStyle(parent).position;
-      if (pos === 'static') {
-        originalStates.push({ element: parent, position: parent.style.position });
-        parent.style.position = 'relative';
-      }
-    }
-  });
-  
-  // Create overlays for all inputs and selects
-  const overlays = [];
-  
-  elements.forEach(el => {
-    // Skip hidden or non-visible elements
-    if (el.offsetWidth === 0 || el.offsetHeight === 0) return;
-    
-    // Skip the native date input (it's hidden)
-    if (el.classList.contains('date-native')) return;
-    
-    // For date display, only create overlay if it has a value
-    if (el.classList.contains('date-display') && !el.value) return;
-    
-    // For regular inputs, only create overlay if they have a value
-    if (el.tagName === 'INPUT' && !el.classList.contains('date-display') && !el.value) return;
-    
-    // For selects, create overlay if they have a selection
-    if (el.tagName === 'SELECT' && !el.value) return;
-    
-    // Create the overlay
-    const overlay = createPDFOverlay(el);
-    
-    // Store original visibility
-    originalStates.push({ element: el, visibility: el.style.visibility });
-    el.style.visibility = 'hidden';
-    
-    // Add overlay to parent
-    el.parentElement.appendChild(overlay);
-    overlays.push(overlay);
-  });
-  
-  // Wait for DOM to update
-  await new Promise(resolve => setTimeout(resolve, 50));
-  
-  // Capture with html2canvas
-  const canvas = await html2canvas(sheet, {
-    scale: 2,
-    backgroundColor: '#ffffff',
-    useCORS: true,
-    logging: false,
-    width: sheet.scrollWidth,
-    height: sheet.scrollHeight,
-    windowWidth: sheet.scrollWidth,
-    windowHeight: sheet.scrollHeight
-  });
-  
-  // Clean up overlays
-  overlays.forEach(overlay => overlay.remove());
-  
-  // Restore original states
-  originalStates.forEach(({ element, display, visibility, position }) => {
-    if (display !== undefined) element.style.display = display;
-    if (visibility !== undefined) element.style.visibility = visibility;
-    if (position !== undefined) element.style.position = position;
-  });
-  
-  return canvas;
-}
-
-document.getElementById('exportBtn').addEventListener('click', async ()=>{
-  const btn = document.getElementById('exportBtn');
-  const origText = btn.textContent;
-  btn.textContent = '⏳ Generating PDF...';
-  btn.disabled = true;
-
-  try {
-    const { jsPDF } = window.jspdf;
-    const pdf = new jsPDF('p', 'pt', 'letter');
-    const sheets = [...document.querySelectorAll('.sheet')];
-
-    for (let i = 0; i < sheets.length; i++) {
-      const canvas = await captureSheetForPDF(sheets[i]);
-      
-      const imgData = canvas.toDataURL('image/png');
-      const pageW = pdf.internal.pageSize.getWidth();
-      const pageH = pdf.internal.pageSize.getHeight();
-      
-      // Calculate dimensions to fit the page with margins
-      const margin = 40;
-      const maxW = pageW - (margin * 2);
-      const maxH = pageH - (margin * 2);
-      
-      const ratio = Math.min(maxW / canvas.width, maxH / canvas.height);
-      const w = canvas.width * ratio;
-      const h = canvas.height * ratio;
-      
-      if (i > 0) pdf.addPage();
-      pdf.addImage(imgData, 'PNG', (pageW - w) / 2, margin, w, h);
-    }
-
-    pdf.save('Secondary_Employment_Report.pdf');
-    alert('✅ PDF exported successfully!');
-  } catch (error) {
-    console.error('PDF export error:', error);
-    alert('❌ Failed to export PDF: ' + error.message);
-  } finally {
-    btn.textContent = origText;
-    btn.disabled = false;
   }
 });
 
