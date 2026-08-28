@@ -230,14 +230,13 @@
     tbody td select.type-select:focus{background:#fbfcfe;}
     tbody td select.type-select option.placeholder{color:var(--muted);}
 
-    /* --- DATE CELL: full clickable area --- */
+    /* --- DATE CELL: Restored visible icon --- */
     .date-cell{
       position:relative;
       display:flex;
       align-items:center;
       height:var(--row-h);
       max-height:var(--row-h);
-      cursor:pointer;
       padding:0;
     }
     input.date-display{
@@ -250,29 +249,42 @@
       font-family:inherit;
       background:transparent;
       color:var(--ink);
-      pointer-events:none;      /* let clicks pass to the date input behind */
+      pointer-events:none; /* Let clicks pass to the native input's icon */
       display:block;
     }
     input.date-display::placeholder{color:var(--muted);}
-    /* Invisible date input covers the entire cell */
+
+    /* Native date input - visible but text hidden, icon visible */
     input.date-native{
       position:absolute;
-      inset:0;                 /* top, right, bottom, left = 0 */
+      inset:0;
       width:100%;
       height:100%;
       margin:0;
-      padding:0;
+      padding:0 6px;
       border:none;
       background:transparent;
-      opacity:0;
+      opacity:1; /* Fully visible */
+      color:transparent; /* Hide the date text */
       cursor:pointer;
       z-index:2;
       font-size:12.5px;
       font-family:inherit;
       color-scheme:light;
       box-sizing:border-box;
-      pointer-events:auto;     /* ensure it receives clicks */
+      pointer-events:auto;
     }
+    /* Hide the date text in WebKit browsers (Chrome, Edge, Safari) */
+    input.date-native::-webkit-datetime-edit {
+      display: none;
+    }
+    /* Ensure the calendar picker icon is visible */
+    input.date-native::-webkit-calendar-picker-indicator {
+      display: block;
+      opacity: 1;
+      cursor: pointer;
+    }
+    /* For Firefox, the icon is visible by default with color:transparent */
     /* ----- */
 
     tbody td input:focus{background:#fbfcfe;}
@@ -434,6 +446,8 @@
       .sheet-logo-patch{height:72px;max-width:72px;}
       .sheet-header{margin-bottom:10px;}
       .sheet .page-tag{top:6px;right:10px;font-size:8px;}
+      /* Ensure the date icon is not printed */
+      input.date-native{display:none;}
     }
 
     @media (max-width:640px){
@@ -471,6 +485,8 @@
     .sheet.pdf-capture .sheet-logo-badge{height:90px !important;width:auto !important;max-width:90px !important;}
     .sheet.pdf-capture .sheet-logo-patch{height:72px !important;width:auto !important;max-width:72px !important;}
     .sheet.pdf-capture .sheet-header{margin-bottom:10px !important;}
+    /* Hide the date input in PDF capture mode so it doesn't overlay the text */
+    .sheet.pdf-capture input.date-native{display:none;}
   </style>
 </head>
 <body>
@@ -583,24 +599,6 @@ function makeRow(){
   const dateNative = tr.querySelector('.date-native');
   const dateDisplay = tr.querySelector('.date-display');
   const dayInput = tr.querySelector('.day-input');
-  const dateCell = tr.querySelector('.date-cell');
-
-  // ---- Date picker activation ----
-  // 1. The invisible date input covers the entire cell (via CSS).
-  // 2. As a fallback, we also listen for clicks on the cell and forward them.
-  dateCell.addEventListener('click', function(e) {
-    // If the click target is not the date-native itself, trigger the picker.
-    // This ensures that even if the date input doesn't capture the click (e.g., browser quirks),
-    // we programmatically open it.
-    if (e.target !== dateNative) {
-      // Use showPicker() if available (modern browsers) else fallback to click()
-      if (dateNative.showPicker) {
-        dateNative.showPicker();
-      } else {
-        dateNative.click();
-      }
-    }
-  });
 
   dateNative.addEventListener('change', ()=>{
     if (dateNative.value) {
