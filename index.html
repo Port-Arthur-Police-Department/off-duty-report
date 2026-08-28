@@ -433,6 +433,32 @@
       .info-cell:nth-child(odd){border-right:none;}
       .sig-section{grid-template-columns:1fr;}
     }
+
+    /* Used only while capturing a page for "Export as PDF". Mirrors the
+       compact print sizing above (already verified to fit one page) and
+       forces the two-column desktop layout, regardless of the actual
+       device screen size, so the export is always consistent. */
+    .sheet.pdf-capture{
+      width:900px !important;
+      max-width:none !important;
+      box-shadow:none;
+      border:none;
+      border-radius:0;
+      padding:12px 20px 10px !important;
+    }
+    .sheet.pdf-capture .info-grid{grid-template-columns:1fr 1fr !important;margin-bottom:10px !important;}
+    .sheet.pdf-capture .info-cell:nth-child(odd){border-right:1px solid var(--line-strong) !important;}
+    .sheet.pdf-capture .sig-section{grid-template-columns:1fr 1fr !important;margin-top:10px !important;gap:10px !important;}
+    .sheet.pdf-capture .sig-block{padding:5px 8px 6px !important;}
+    .sheet.pdf-capture .sig-pad-wrap canvas.sig-pad{height:44px !important;}
+    .sheet.pdf-capture tbody td{height:22px !important;}
+    .sheet.pdf-capture tbody td input{font-size:10px !important;padding:0 4px !important;}
+    .sheet.pdf-capture tbody td select.type-select{font-size:10px !important;padding:0 2px !important;}
+    .sheet.pdf-capture .time-cell select{font-size:9px !important;padding:1px !important;}
+    .sheet.pdf-capture .total-row{padding:3px 10px !important;font-size:11px !important;}
+    .sheet.pdf-capture h1{font-size:16px !important;margin:0 !important;line-height:28px !important;}
+    .sheet.pdf-capture .sheet-logo{height:28px !important;width:28px !important;}
+    .sheet.pdf-capture .sheet-header{margin-bottom:10px !important;}
   </style>
 </head>
 <body>
@@ -457,6 +483,8 @@
 <div id="pages"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/signature_pad/4.1.7/signature_pad.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
 // ============================================
@@ -937,17 +965,148 @@ function showSaveNote(msg, type){
 }
 
 // ============================================
-//  PDF EXPORT — uses the browser's native print engine
+//  PDF EXPORT — dedicated auto-download, distinct from Print
 // ============================================
-// Earlier versions rendered a canvas "screenshot" of the page and placed
-// it into a generated PDF. That approach kept producing subtle rendering
-// bugs (misaligned dropdowns, missing icons, stretched proportions on
-// some devices) because it's only an approximation of the real layout.
-// Printing to PDF uses the browser's actual rendering engine instead, so
-// it always matches the on-screen layout exactly, with no distortion.
-function exportAsPDF(){
-  showSaveNote('Choose "Save as PDF" as the destination in the print dialog.', 'success');
-  window.print();
+
+function prepExportOverlays(sheet){
+  const entries = [];
+
+  // Replace every <select> with a plain text element that takes the exact
+  // same flex slot in the row — native dropdown rendering isn't captured
+  // accurately by the PDF snapshot process, and an absolutely-positioned
+  // overlay would cover sibling elements (like the "Rank:" label) instead
+  // of just the dropdown itself.
+  sheet.querySelectorAll('select').forEach(sel=>{
+    const div = document.createElement('div');
+    const text = sel.selectedIndex >= 0 ? sel.options[sel.selectedIndex].text : '';
+    div.textContent = (text || '').trim() === 'Select...' ? '' : text;
+    div.style.display = 'flex';
+    div.style.alignItems = 'center';
+    div.style.whiteSpace = 'nowrap';
+    div.style.overflow = 'hidden';
+    div.style.textOverflow = 'ellipsis';
+    div.style.color = sel.value === '' ? '#6b7280' : '#1a1d21';
+    div.style.fontFamily = "'Helvetica Neue',Arial,sans-serif";
+    div.style.boxSizing = 'border-box';
+
+    if(sel.classList.contains('info-select-month')){
+      div.style.flex = '1.4';
+      div.style.fontSize = '12px';
+      div.style.padding = '2px 2px';
+      div.style.justifyContent = 'flex-start';
+    } else if(sel.classList.contains('info-select-year')){
+      div.style.flex = '0.8';
+      div.style.fontSize = '12px';
+      div.style.padding = '2px 2px';
+      div.style.justifyContent = 'flex-start';
+    } else if(sel.classList.contains('info-select')){
+      div.style.flex = '1';
+      div.style.fontSize = '12px';
+      div.style.padding = '2px 2px';
+      div.style.justifyContent = 'flex-start';
+    } else if(sel.classList.contains('type-select')){
+      div.style.width = '100%';
+      div.style.height = '100%';
+      div.style.fontSize = '10px';
+      div.style.padding = '0 2px';
+      div.style.justifyContent = 'flex-start';
+    } else if(sel.classList.contains('time-start') || sel.classList.contains('time-end')){
+      div.style.flex = '1';
+      div.style.minWidth = '0';
+      div.style.fontSize = '9px';
+      div.style.padding = '0 1px';
+      div.style.justifyContent = 'center';
+      div.style.height = '100%';
+    } else {
+      div.style.flex = '1';
+      div.style.fontSize = '10px';
+      div.style.padding = '0 2px';
+      div.style.justifyContent = 'flex-start';
+    }
+
+    // Insert the replacement in the exact same spot in the flex row, then
+    // fully remove the select from layout (display:none, not just hidden)
+    // so it doesn't reserve extra space alongside the new element.
+    sel.parentElement.insertBefore(div, sel);
+    sel.style.display = 'none';
+    entries.push({div, sel});
+  });
+
+  // Hide the invisible native date-picker control — the formatted text
+  // field (date-display) already shows the chosen date.
+  const dateNatives = [...sheet.querySelectorAll('.date-native')];
+  dateNatives.forEach(el=> el.style.visibility = 'hidden');
+
+  return { entries, dateNatives };
+}
+
+function restoreExportOverlays(state){
+  state.entries.forEach(({div, sel})=>{
+    div.remove();
+    sel.style.display = '';
+  });
+  state.dateNatives.forEach(el=> el.style.visibility = '');
+}
+
+async function exportAsPDF(){
+  const btn = document.getElementById('exportBtn');
+  const origText = btn.textContent;
+  btn.textContent = 'Generating PDF...';
+  btn.disabled = true;
+
+  try{
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'pt', 'letter');
+    const pageW = pdf.internal.pageSize.getWidth();   // 612pt
+    const pageH = pdf.internal.pageSize.getHeight();  // 792pt
+    const sheets = [...document.querySelectorAll('.sheet')];
+
+    for(let i=0;i<sheets.length;i++){
+      const sheet = sheets[i];
+      const controls = sheet.querySelectorAll('.row-del,.table-actions,.sig-controls');
+      controls.forEach(c=>c.style.visibility='hidden');
+      const overlayState = prepExportOverlays(sheet);
+
+      // Force the same compact, two-column layout the print stylesheet
+      // uses (already verified to fit one page) — regardless of the
+      // device's actual screen size — so captures are always consistent.
+      sheet.classList.add('pdf-capture');
+
+      const canvas = await html2canvas(sheet, {
+        scale: 2,
+        backgroundColor:'#ffffff',
+        useCORS:true
+      });
+
+      sheet.classList.remove('pdf-capture');
+      restoreExportOverlays(overlayState);
+      controls.forEach(c=>c.style.visibility='');
+
+      const imgData = canvas.toDataURL('image/png');
+
+      // Always preserve the true aspect ratio — scale down uniformly to
+      // fit within the page on whichever axis is the tighter constraint,
+      // then center. (A previous version force-fit height to the page
+      // when content ran long, which squashed/stretched the image —
+      // that's fixed here by never scaling width and height differently.)
+      const scale = Math.min(pageW / canvas.width, pageH / canvas.height);
+      const w = canvas.width * scale;
+      const h = canvas.height * scale;
+      const x = (pageW - w) / 2;
+      const y = (pageH - h) / 2;
+
+      if(i>0) pdf.addPage();
+      pdf.addImage(imgData, 'PNG', x, y, w, h);
+    }
+
+    pdf.save(`Secondary_Employment_Report_${new Date().toISOString().slice(0,10)}.pdf`);
+    showSaveNote('PDF exported.', 'success');
+  } catch(err){
+    showSaveNote('PDF export failed: ' + err.message, 'error');
+  }
+
+  btn.textContent = origText;
+  btn.disabled = false;
 }
 
 // ============================================
