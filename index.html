@@ -230,7 +230,7 @@
     tbody td select.type-select:focus{background:#fbfcfe;}
     tbody td select.type-select option.placeholder{color:var(--muted);}
 
-    /* --- DATE CELL: Restored visible icon --- */
+    /* --- DATE CELL: visible icon aligned to the right --- */
     .date-cell{
       position:relative;
       display:flex;
@@ -273,12 +273,13 @@
       color-scheme:light;
       box-sizing:border-box;
       pointer-events:auto;
+      direction: rtl; /* Moves the calendar icon to the right side */
     }
     /* Hide the date text in WebKit browsers (Chrome, Edge, Safari) */
     input.date-native::-webkit-datetime-edit {
       display: none;
     }
-    /* Ensure the calendar picker icon is visible */
+    /* Ensure the calendar picker icon is visible and on the right */
     input.date-native::-webkit-calendar-picker-indicator {
       display: block;
       opacity: 1;
