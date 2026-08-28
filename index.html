@@ -230,7 +230,7 @@
     tbody td select.type-select:focus{background:#fbfcfe;}
     tbody td select.type-select option.placeholder{color:var(--muted);}
 
-    /* --- DATE CELL: fully clickable, no visible icon --- */
+    /* --- DATE CELL: fully clickable, no visible icon, text centered --- */
     .date-cell{
       position:relative;
       display:flex;
@@ -252,9 +252,12 @@
       color:var(--ink);
       pointer-events:none; /* let clicks pass through to the cell */
       display:block;
-      text-align:left;
+      text-align:center;   /* center the date text */
     }
-    input.date-display::placeholder{color:var(--muted);}
+    input.date-display::placeholder{
+      color:var(--muted);
+      text-align:center;   /* center the placeholder text */
+    }
 
     /* Native date input – fully invisible but covers the cell */
     input.date-native{
@@ -453,8 +456,8 @@
       .sheet .page-tag{top:6px;right:10px;font-size:8px;}
       /* Hide the native date input in print */
       input.date-native{display:none;}
-      /* Ensure the displayed date is visible */
-      input.date-display{pointer-events:auto; padding:0 6px;}
+      /* Ensure the displayed date is visible and centered */
+      input.date-display{pointer-events:auto; padding:0 6px; text-align:center;}
     }
 
     @media (max-width:640px){
@@ -493,6 +496,7 @@
     .sheet.pdf-capture .sheet-logo-patch{height:72px !important;width:auto !important;max-width:72px !important;}
     .sheet.pdf-capture .sheet-header{margin-bottom:10px !important;}
     .sheet.pdf-capture input.date-native{display:none;}
+    .sheet.pdf-capture input.date-display{text-align:center !important;}
   </style>
 </head>
 <body>
