@@ -224,7 +224,8 @@
     tbody td input.day-input{
       text-align:center;
     }
-    tbody td select.type-select{
+    tbody td select.type-select,
+    tbody td select.vehicle-select{
       width:100%;
       height:var(--row-h);
       border:none;
@@ -236,8 +237,10 @@
       color:var(--ink);
       cursor:pointer;
     }
-    tbody td select.type-select:focus{background:#fbfcfe;}
-    tbody td select.type-select option.placeholder{color:var(--muted);}
+    tbody td select.type-select:focus,
+    tbody td select.vehicle-select:focus{background:#fbfcfe;}
+    tbody td select.type-select option.placeholder,
+    tbody td select.vehicle-select option.placeholder{color:var(--muted);}
 
     /* --- DATE CELL: fully clickable, no visible icon, text centered --- */
     .date-cell{
@@ -317,7 +320,8 @@
     col.c-date{width:10%;}
     col.c-day{width:10%;}
     col.c-emp{width:22%;}
-    col.c-type{width:16%;}
+    col.c-vehicle{width:8%;}
+    col.c-type{width:10%;}
     col.c-time{width:26%;}
     col.c-hrs{width:10%;}
     col.c-del{width:26px;}
@@ -449,7 +453,8 @@
       .total-row{background:#eee !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
       tbody td{height:22px;}
       tbody td input{font-size:10px;padding:0 4px;}
-      tbody td select.type-select{font-size:10px;padding:0 2px;}
+      tbody td select.type-select,
+      tbody td select.vehicle-select{font-size:10px;padding:0 2px;}
       .time-cell select{font-size:9px;padding:1px;}
       .sig-pad-wrap canvas.sig-pad{height:44px;}
       .info-grid{margin-bottom:10px;}
@@ -495,7 +500,8 @@
     .sheet.pdf-capture .sig-pad-wrap canvas.sig-pad{height:44px !important;}
     .sheet.pdf-capture tbody td{height:22px !important;}
     .sheet.pdf-capture tbody td input{font-size:10px !important;padding:0 4px !important;}
-    .sheet.pdf-capture tbody td select.type-select{font-size:10px !important;padding:0 2px !important;}
+    .sheet.pdf-capture tbody td select.type-select,
+    .sheet.pdf-capture tbody td select.vehicle-select{font-size:10px !important;padding:0 2px !important;}
     .sheet.pdf-capture .time-cell select{font-size:9px !important;padding:1px !important;}
     .sheet.pdf-capture .total-row{padding:3px 10px !important;font-size:11px !important;}
     .sheet.pdf-capture h1{font-size:16px !important;margin:0 !important;}
@@ -596,6 +602,13 @@ function makeRow(){
     </td>
     <td><input type="text" class="day-input" placeholder="--" readonly tabindex="-1"></td>
     <td><input type="text" class="employer-input" placeholder=""></td>
+    <td>
+      <select class="vehicle-select">
+        <option value="" class="placeholder"> </option>
+        <option value="Yes">Yes</option>
+        <option value="No">No</option>
+      </select>
+    </td>
     <td>
       <select class="type-select">
         <option value="" class="placeholder"> </option>
@@ -732,11 +745,11 @@ function addPage(){
     </div>` : ''}
     <table>
       <colgroup>
-        <col class="c-date"><col class="c-day"><col class="c-emp"><col class="c-type"><col class="c-time"><col class="c-hrs"><col class="c-del">
+        <col class="c-date"><col class="c-day"><col class="c-emp"><col class="c-vehicle"><col class="c-type"><col class="c-time"><col class="c-hrs"><col class="c-del">
       </colgroup>
       <thead>
         <tr>
-          <th>Date Worked</th><th>Day of Week</th><th>Employer</th><th>Type of Work</th><th>Time Worked</th><th>Hours</th><th></th>
+          <th>Date Worked</th><th>Day of Week</th><th>Employer</th><th>Vehicle used</th><th>Type of Work</th><th>Time Worked</th><th>Hours</th><th></th>
         </tr>
       </thead>
       <tbody></tbody>
@@ -818,6 +831,7 @@ function collectPageData(sheet) {
     const dateNative = tr.querySelector('.date-native');
     const dayInput = tr.querySelector('.day-input');
     const employerInput = tr.querySelector('.employer-input');
+    const vehicle = tr.querySelector('.vehicle-select').value;
     const type = tr.querySelector('.type-select').value;
     const start = tr.querySelector('.time-start').value;
     const end = tr.querySelector('.time-end').value;
@@ -825,6 +839,7 @@ function collectPageData(sheet) {
       date: dateNative.value,
       day: dayInput.value,
       employer: employerInput.value,
+      vehicle: vehicle,
       type: type,
       start: start || '',
       end: end || ''
@@ -925,6 +940,7 @@ function restorePageFromData(pageData, pageIndex) {
     const dateDisplay = tr.querySelector('.date-display');
     const dayInput = tr.querySelector('.day-input');
     const employerInput = tr.querySelector('.employer-input');
+    const vehicle = tr.querySelector('.vehicle-select');
     const type = tr.querySelector('.type-select');
     const start = tr.querySelector('.time-start');
     const end = tr.querySelector('.time-end');
@@ -935,6 +951,7 @@ function restorePageFromData(pageData, pageIndex) {
       dayInput.value = rowData.day || '';
     }
     employerInput.value = rowData.employer || '';
+    vehicle.value = rowData.vehicle || '';
     type.value = rowData.type || '';
     start.value = rowData.start || '';
     end.value = rowData.end || '';
