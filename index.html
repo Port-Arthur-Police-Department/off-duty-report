@@ -1211,8 +1211,7 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
     const payload = flattenForSubmission(state);
     const response = await fetch(APPS_SCRIPT_URL, {
       method: 'POST',
-      body: JSON.stringify(payload),
-      headers: { 'Content-Type': 'application/json' }
+      body: JSON.stringify(payload)
     });
 
     if (!response.ok) throw new Error('Server returned status ' + response.status);

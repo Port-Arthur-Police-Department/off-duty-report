@@ -18,6 +18,12 @@ const HEADERS = [
   'HasOfficerSig', 'HasCommanderSig'
 ];
 
+// ---------- OPTIONS: Handle CORS preflight ----------
+function doOptions(e) {
+  return ContentService.createTextOutput('')
+    .setMimeType(ContentService.MimeType.TEXT);
+}
+
 // ---------- POST: Receive a submitted report ----------
 function doPost(e) {
   try {
