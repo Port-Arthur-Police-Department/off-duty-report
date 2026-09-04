@@ -40,6 +40,32 @@ function doPost(e) {
       return jsonResponse(403, { success: false, error: 'Unauthorized' });
     }
 
+    // 2b. Delete action: remove all rows for a given reportId
+    if (data.action === 'delete') {
+      if (!data.reportId) {
+        return jsonResponse(400, { success: false, error: 'Missing reportId' });
+      }
+      var ss = SpreadsheetApp.getActiveSpreadsheet();
+      var sheet = ss.getSheetByName(SHEET_NAME);
+      if (!sheet || sheet.getLastRow() <= 1) {
+        return jsonResponse(200, { success: true, deleted: 0 });
+      }
+      var allData = sheet.getDataRange().getValues();
+      var reportIds = sheet.getRange(2, 7, sheet.getLastRow() - 1, 1).getValues(); // Column G = ReportID
+      var rowsToDelete = [];
+      for (var i = 0; i < reportIds.length; i++) {
+        if (reportIds[i][0] === data.reportId) {
+          rowsToDelete.push(i + 2); // +2 because row 1 is header, i is 0-indexed from row 2
+        }
+      }
+      // Delete from bottom to top to preserve row indices
+      rowsToDelete.sort(function (a, b) { return b - a; });
+      rowsToDelete.forEach(function (rowNum) {
+        sheet.deleteRow(rowNum);
+      });
+      return jsonResponse(200, { success: true, deleted: rowsToDelete.length });
+    }
+
     // 3. Validate payload structure
     if (!data.header || !data.pages || !Array.isArray(data.pages) || data.pages.length === 0) {
       return jsonResponse(400, { success: false, error: 'Missing header or pages data' });

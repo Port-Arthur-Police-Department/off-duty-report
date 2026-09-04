@@ -203,6 +203,15 @@
       border-radius:5px;
     }
     .btn-view:hover{filter:brightness(0.95);}
+    .btn-delete{
+      background:#fff;
+      color:#b3261e;
+      border:1px solid #f2c9c6;
+      font-size:12px;
+      padding:5px 10px;
+      border-radius:5px;
+    }
+    .btn-delete:hover{background:#fdf1f0;}
 
     .empty-state{
       text-align:center;
@@ -438,6 +447,7 @@
 // ============================================================
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxxvEqvSE2CAdUlkP3EFQhuGpR3bWHXmt7VM-w-aE48m-BN2yBLTxQ6z7nH7cTmtM-6/exec';
 const ADMIN_PIN = '0911';
+const ADMIN_SECRET = 'CHANGE_ME_TO_A_RANDOM_STRING'; // Must match SECRET_KEY in Code.gs
 
 let allReports = [];
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -566,7 +576,10 @@ function renderTable(data) {
         '<span class="sig-badge ' + (r.hasCommanderSig ? 'yes' : 'no') + '" title="Commander sig"></span>' +
       '</td>' +
       '<td>' + submitted + '</td>' +
-      '<td><button class="btn-view" data-id="' + escHtml(r.reportId) + '">View</button></td>';
+      '<td style="white-space:nowrap;">' +
+        '<button class="btn-view" data-id="' + escHtml(r.reportId) + '">View</button> ' +
+        '<button class="btn-delete" data-id="' + escHtml(r.reportId) + '">Delete</button>' +
+      '</td>';
 
     tbody.appendChild(tr);
   });
@@ -574,6 +587,11 @@ function renderTable(data) {
   // Attach view handlers
   tbody.querySelectorAll('.btn-view').forEach(btn => {
     btn.addEventListener('click', () => showDetail(btn.dataset.id));
+  });
+
+  // Attach delete handlers
+  tbody.querySelectorAll('.btn-delete').forEach(btn => {
+    btn.addEventListener('click', () => deleteReport(btn.dataset.id));
   });
 }
 
@@ -665,6 +683,43 @@ function renderDetailBody(report) {
   }
 
   body.innerHTML = html;
+}
+
+// ============================================================
+//  DELETE REPORT
+// ============================================================
+async function deleteReport(reportId) {
+  const confirmed = confirm('Delete this report?\n\nThis will permanently remove all of its entries from the Google Sheet. This action cannot be undone.');
+  if (!confirmed) return;
+
+  try {
+    const response = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'delete',
+        reportId: reportId,
+        secretKey: ADMIN_SECRET
+      })
+    });
+
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const result = await response.json();
+
+    if (result.success) {
+      // Close detail modal if open for this report
+      const detailModal = document.getElementById('detailModal');
+      if (!detailModal.classList.contains('hidden')) {
+        detailModal.classList.add('hidden');
+        document.body.style.overflow = '';
+      }
+      alert('Report deleted successfully.');
+      fetchData(); // Refresh the table
+    } else {
+      throw new Error(result.error || 'Delete failed');
+    }
+  } catch (err) {
+    alert('Failed to delete report: ' + err.message);
+  }
 }
 
 // ============================================================
