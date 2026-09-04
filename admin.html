@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PAPD - Report Admin</title>
+  <link rel="apple-touch-icon" sizes="180x180" href="/off-duty-report/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/off-duty-report/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/off-duty-report/favicon-16x16.png">
+  <link rel="manifest" href="/off-duty-report/site.webmanifest">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Report Admin">
+  <meta name="theme-color" content="#1e3a5f">
+  <style>
+    :root{
+      --ink:#1a1d21;
+      --paper:#ffffff;
+      --line:#c9cdd3;
+      --line-strong:#1a1d21;
+      --muted:#6b7280;
+      --accent:#1e3a5f;
+      --accent-soft:#eef2f7;
+    }
+    *{box-sizing:border-box;}
+    body{
+      font-family:'Helvetica Neue',Arial,sans-serif;
+      color:var(--ink);
+      background:#f4f5f7;
+      margin:0;
+      padding:0;
+    }
+
+    /* ===== BUTTONS ===== */
+    button{
+      font-family:inherit;
+      font-size:13px;
+      font-weight:600;
+      border-radius:7px;
+      border:1px solid transparent;
+      padding:9px 14px;
+      cursor:pointer;
+      transition:filter .12s ease, transform .05s ease;
+    }
+    button:active{transform:translateY(1px);}
+    .btn-primary{background:var(--accent);color:#fff;}
+    .btn-primary:hover{filter:brightness(1.1);}
+    .btn-secondary{background:var(--accent-soft);color:var(--accent);border-color:#d7e0ea;}
+    .btn-secondary:hover{filter:brightness(0.97);}
+
+    /* ===== PIN MODAL ===== */
+    .modal-overlay{
+      position:fixed;inset:0;
+      background:rgba(0,0,0,.45);
+      display:flex;align-items:center;justify-content:center;
+      z-index:1000;
+    }
+    .modal-overlay.hidden{display:none;}
+    .modal-content{
+      background:var(--paper);
+      border-radius:12px;
+      box-shadow:0 8px 32px rgba(0,0,0,.18);
+      padding:32px;
+      position:relative;
+    }
+    .pin-modal{
+      max-width:360px;width:90%;
+      text-align:center;
+    }
+    .pin-modal h2{
+      margin:0 0 8px;
+      font-size:20px;
+      color:var(--accent);
+    }
+    .pin-modal p{
+      margin:0 0 16px;
+      font-size:14px;
+      color:var(--muted);
+    }
+    .pin-modal input{
+      width:100%;
+      font-size:24px;
+      text-align:center;
+      letter-spacing:.3em;
+      padding:12px;
+      border:2px solid var(--line);
+      border-radius:8px;
+      outline:none;
+      font-family:inherit;
+      margin-bottom:12px;
+    }
+    .pin-modal input:focus{border-color:var(--accent);}
+    .pin-error{
+      color:#b3261e;
+      font-size:13px;
+      margin-bottom:12px;
+    }
+    .pin-error.hidden{display:none;}
+
+    /* ===== ADMIN HEADER ===== */
+    .admin-header{
+      max-width:1100px;
+      margin:0 auto;
+      padding:24px 20px 0;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      flex-wrap:wrap;
+      gap:12px;
+    }
+    .admin-header h1{
+      margin:0;
+      font-size:22px;
+      color:var(--accent);
+    }
+    .admin-header-right{
+      display:flex;
+      gap:8px;
+      align-items:center;
+    }
+
+    /* ===== FILTER BAR ===== */
+    .filter-bar{
+      max-width:1100px;
+      margin:20px auto 0;
+      padding:0 20px;
+      display:flex;
+      align-items:flex-end;
+      gap:16px;
+      flex-wrap:wrap;
+    }
+    .filter-group{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .filter-group label{
+      font-size:11px;
+      font-weight:600;
+      text-transform:uppercase;
+      letter-spacing:.03em;
+      color:var(--muted);
+    }
+    .filter-group select{
+      padding:8px 12px;
+      border:1px solid var(--line);
+      border-radius:6px;
+      font-size:13px;
+      font-family:inherit;
+      background:var(--paper);
+      color:var(--ink);
+      min-width:140px;
+      outline:none;
+    }
+    .filter-group select:focus{border-color:var(--accent);}
+    .result-count{
+      font-size:13px;
+      color:var(--muted);
+      padding-bottom:8px;
+    }
+
+    /* ===== TABLE ===== */
+    .table-container{
+      max-width:1100px;
+      margin:16px auto 40px;
+      padding:0 20px;
+      overflow-x:auto;
+    }
+    .admin-table{
+      width:100%;
+      border-collapse:collapse;
+      background:var(--paper);
+      border-radius:10px;
+      overflow:hidden;
+      box-shadow:0 1px 4px rgba(0,0,0,.06);
+    }
+    .admin-table thead th{
+      background:var(--accent-soft);
+      color:var(--accent);
+      font-size:11px;
+      text-transform:uppercase;
+      letter-spacing:.03em;
+      padding:12px 14px;
+      text-align:left;
+      border-bottom:2px solid var(--line);
+      font-weight:700;
+      white-space:nowrap;
+    }
+    .admin-table tbody td{
+      padding:10px 14px;
+      border-bottom:1px solid var(--line);
+      font-size:13px;
+      vertical-align:middle;
+    }
+    .admin-table tbody tr:hover{background:#fafbfc;}
+    .admin-table tbody tr:last-child td{border-bottom:none;}
+    .btn-view{
+      background:var(--accent-soft);
+      color:var(--accent);
+      border:1px solid #d7e0ea;
+      font-size:12px;
+      padding:5px 10px;
+      border-radius:5px;
+    }
+    .btn-view:hover{filter:brightness(0.95);}
+
+    .empty-state{
+      text-align:center;
+      padding:60px 20px;
+      color:var(--muted);
+      font-size:15px;
+    }
+    .empty-state.hidden{display:none;}
+
+    .loading{
+      text-align:center;
+      padding:60px 20px;
+      color:var(--muted);
+      font-size:15px;
+    }
+    .loading.hidden{display:none;}
+
+    .sig-badge{
+      display:inline-block;
+      width:10px;height:10px;
+      border-radius:50%;
+      margin-left:4px;
+      vertical-align:middle;
+    }
+    .sig-badge.yes{background:#1a7a3d;}
+    .sig-badge.no{background:#d7e0ea;}
+
+    /* ===== DETAIL MODAL ===== */
+    .detail-modal{
+      max-width:900px;
+      width:95%;
+      max-height:88vh;
+      display:flex;
+      flex-direction:column;
+    }
+    .modal-header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      border-bottom:1px solid var(--line);
+      padding-bottom:12px;
+      margin-bottom:16px;
+      flex-shrink:0;
+    }
+    .modal-header h2{
+      margin:0;
+      font-size:18px;
+      color:var(--accent);
+    }
+    .modal-close{
+      background:transparent;
+      border:none;
+      font-size:24px;
+      color:var(--muted);
+      cursor:pointer;
+      padding:4px 8px;
+      line-height:1;
+    }
+    .modal-close:hover{color:var(--ink);}
+    .modal-body{
+      overflow-y:auto;
+      flex:1;
+      padding-right:4px;
+    }
+
+    .detail-header-grid{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      border:1px solid var(--line-strong);
+      border-radius:6px;
+      overflow:hidden;
+      margin-bottom:20px;
+    }
+    .detail-cell{
+      padding:8px 12px;
+      border-bottom:1px solid var(--line-strong);
+      font-size:13px;
+    }
+    .detail-cell:nth-child(odd){border-right:1px solid var(--line-strong);}
+    .detail-cell:nth-last-child(-n+2){border-bottom:none;}
+    .detail-cell strong{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.02em;}
+
+    .detail-page-title{
+      font-size:14px;
+      font-weight:700;
+      color:var(--accent);
+      margin:20px 0 8px;
+    }
+    .detail-table{
+      width:100%;
+      border-collapse:collapse;
+      margin-bottom:4px;
+    }
+    .detail-table thead th{
+      background:var(--accent-soft);
+      color:var(--accent);
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.03em;
+      padding:7px 8px;
+      border:1px solid var(--line);
+      font-weight:700;
+      text-align:left;
+    }
+    .detail-table tbody td{
+      padding:5px 8px;
+      border:1px solid var(--line);
+      font-size:12px;
+    }
+    .detail-sigs{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:16px;
+      margin:12px 0 8px;
+    }
+    .detail-sig-block{
+      border:1px solid var(--line);
+      border-radius:6px;
+      padding:8px 10px;
+    }
+    .detail-sig-block label{
+      display:block;
+      font-size:10px;
+      text-transform:uppercase;
+      letter-spacing:.03em;
+      color:var(--muted);
+      margin-bottom:6px;
+    }
+    .detail-sig-block img{
+      max-width:100%;
+      height:auto;
+      max-height:80px;
+      display:block;
+    }
+    .detail-sig-block .not-signed{
+      font-size:12px;
+      color:var(--muted);
+      font-style:italic;
+      padding:10px 0;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width:640px){
+      .admin-header{flex-direction:column;align-items:flex-start;}
+      .filter-bar{flex-direction:column;align-items:stretch;}
+      .filter-group select{min-width:0;}
+      .detail-header-grid{grid-template-columns:1fr;}
+      .detail-cell:nth-child(odd){border-right:none;}
+      .detail-sigs{grid-template-columns:1fr;}
+      .modal-content{padding:20px;}
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== PIN MODAL ===== -->
+  <div class="modal-overlay" id="pinModal">
+    <div class="modal-content pin-modal">
+      <h2>&#128274; Admin Access</h2>
+      <p>Enter PIN to view submissions:</p>
+      <input type="password" id="pinInput" maxlength="4" placeholder="****"
+             inputmode="numeric" pattern="[0-9]*" autocomplete="off">
+      <div class="pin-error hidden" id="pinError">Incorrect PIN. Try again.</div>
+      <button class="btn-primary" id="pinSubmit" style="width:100%;">Enter</button>
+    </div>
+  </div>
+
+  <!-- ===== MAIN CONTENT ===== -->
+  <div class="hidden" id="mainContent">
+
+    <div class="admin-header">
+      <h1>PAPD - Report Submissions</h1>
+      <div class="admin-header-right">
+        <button class="btn-primary" id="refreshBtn">&#8635; Refresh Data</button>
+        <a href="index.html" class="btn-secondary" style="text-decoration:none;display:inline-block;">Back to Form</a>
+      </div>
+    </div>
+
+    <div class="filter-bar">
+      <div class="filter-group">
+        <label>Officer</label>
+        <select id="filterOfficer"><option value="">All Officers</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Month</label>
+        <select id="filterMonth"><option value="">All Months</option></select>
+      </div>
+      <div class="filter-group">
+        <label>Year</label>
+        <select id="filterYear"><option value="">All Years</option></select>
+      </div>
+      <span class="result-count" id="resultCount"></span>
+    </div>
+
+    <div class="table-container">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>Officer</th>
+            <th>Rank</th>
+            <th>Division</th>
+            <th>Month</th>
+            <th>Year</th>
+            <th>Entries</th>
+            <th>Sigs</th>
+            <th>Submitted</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="reportTableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="empty-state hidden" id="emptyState">No submissions found.</div>
+    <div class="loading hidden" id="loadingIndicator">Loading data...</div>
+
+  </div>
+
+  <!-- ===== DETAIL MODAL ===== -->
+  <div class="modal-overlay hidden" id="detailModal">
+    <div class="modal-content detail-modal">
+      <div class="modal-header">
+        <h2>Report Detail</h2>
+        <button class="modal-close" id="detailClose">&times;</button>
+      </div>
+      <div class="modal-body" id="detailBody"></div>
+    </div>
+  </div>
+
+<script>
+// ============================================================
+//  CONFIGURATION
+// ============================================================
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
+const ADMIN_PIN = '1234';
+
+let allReports = [];
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+// ============================================================
+//  PIN VERIFICATION
+// ============================================================
+function verifyPin() {
+  const input = document.getElementById('pinInput');
+  if (input.value === ADMIN_PIN) {
+    document.getElementById('pinModal').classList.add('hidden');
+    document.getElementById('mainContent').classList.remove('hidden');
+    fetchData();
+  } else {
+    document.getElementById('pinError').classList.remove('hidden');
+    input.value = '';
+    input.focus();
+  }
+}
+
+document.getElementById('pinSubmit').addEventListener('click', verifyPin);
+document.getElementById('pinInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') verifyPin();
+});
+// Focus PIN input on load
+document.getElementById('pinInput').focus();
+
+// ============================================================
+//  DATA FETCHING
+// ============================================================
+async function fetchData() {
+  document.getElementById('loadingIndicator').classList.remove('hidden');
+  document.getElementById('emptyState').classList.add('hidden');
+  document.getElementById('reportTableBody').innerHTML = '';
+
+  try {
+    const response = await fetch(APPS_SCRIPT_URL);
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const data = await response.json();
+    allReports = Array.isArray(data) ? data : [];
+    populateFilters(allReports);
+    renderTable(allReports);
+  } catch (err) {
+    document.getElementById('emptyState').textContent = 'Failed to load data: ' + err.message;
+    document.getElementById('emptyState').classList.remove('hidden');
+  } finally {
+    document.getElementById('loadingIndicator').classList.add('hidden');
+  }
+}
+
+// ============================================================
+//  FILTERS
+// ============================================================
+function populateFilters(data) {
+  const officers = [...new Set(data.map(r => r.officer).filter(Boolean))].sort();
+  const months = [...new Set(data.map(r => r.month).filter(Boolean))];
+  // Sort months in calendar order
+  months.sort((a, b) => MONTHS.indexOf(a) - MONTHS.indexOf(b));
+  const years = [...new Set(data.map(r => r.year).filter(Boolean))].sort().reverse();
+
+  populateSelect('filterOfficer', officers, 'All Officers');
+  populateSelect('filterMonth', months, 'All Months');
+  populateSelect('filterYear', years, 'All Years');
+}
+
+function populateSelect(id, values, allLabel) {
+  const sel = document.getElementById(id);
+  const current = sel.value;
+  sel.innerHTML = '<option value="">' + allLabel + '</option>';
+  values.forEach(v => {
+    const opt = document.createElement('option');
+    opt.value = v;
+    opt.textContent = v;
+    sel.appendChild(opt);
+  });
+  sel.value = current;
+}
+
+function getFilteredReports() {
+  const officer = document.getElementById('filterOfficer').value;
+  const month = document.getElementById('filterMonth').value;
+  const year = document.getElementById('filterYear').value;
+
+  return allReports.filter(r => {
+    if (officer && r.officer !== officer) return false;
+    if (month && r.month !== month) return false;
+    if (year && String(r.year) !== String(year)) return false;
+    return true;
+  });
+}
+
+// ============================================================
+//  TABLE RENDERING
+// ============================================================
+function renderTable(data) {
+  const filtered = getFilteredReports();
+  const tbody = document.getElementById('reportTableBody');
+  const empty = document.getElementById('emptyState');
+  const count = document.getElementById('resultCount');
+
+  tbody.innerHTML = '';
+
+  if (filtered.length === 0) {
+    empty.textContent = data.length === 0 ? 'No submissions found.' : 'No results match your filters.';
+    empty.classList.remove('hidden');
+    count.textContent = '';
+    return;
+  }
+
+  empty.classList.add('hidden');
+  count.textContent = 'Showing ' + filtered.length + ' of ' + allReports.length + ' reports';
+
+  filtered.forEach(r => {
+    const tr = document.createElement('tr');
+    const submitted = r.submissionTimestamp ? formatDate(r.submissionTimestamp) : '—';
+
+    tr.innerHTML =
+      '<td><strong>' + escHtml(r.officer) + '</strong></td>' +
+      '<td>' + escHtml(r.rank) + '</td>' +
+      '<td>' + escHtml(r.division) + '</td>' +
+      '<td>' + escHtml(r.month) + '</td>' +
+      '<td>' + escHtml(r.year) + '</td>' +
+      '<td>' + r.entryCount + '</td>' +
+      '<td>' +
+        '<span class="sig-badge ' + (r.hasOfficerSig ? 'yes' : 'no') + '" title="Officer sig"></span>' +
+        '<span class="sig-badge ' + (r.hasCommanderSig ? 'yes' : 'no') + '" title="Commander sig"></span>' +
+      '</td>' +
+      '<td>' + submitted + '</td>' +
+      '<td><button class="btn-view" data-id="' + escHtml(r.reportId) + '">View</button></td>';
+
+    tbody.appendChild(tr);
+  });
+
+  // Attach view handlers
+  tbody.querySelectorAll('.btn-view').forEach(btn => {
+    btn.addEventListener('click', () => showDetail(btn.dataset.id));
+  });
+}
+
+// ============================================================
+//  DETAIL VIEW
+// ============================================================
+async function showDetail(reportId) {
+  const modal = document.getElementById('detailModal');
+  const body = document.getElementById('detailBody');
+  body.innerHTML = '<p style="text-align:center;color:var(--muted);padding:40px;">Loading report details...</p>';
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  try {
+    const response = await fetch(APPS_SCRIPT_URL + '?reportId=' + encodeURIComponent(reportId));
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const report = await response.json();
+
+    if (!report || !report.header) {
+      body.innerHTML = '<p style="color:#b3261e;">Report not found.</p>';
+      return;
+    }
+
+    renderDetailBody(report);
+  } catch (err) {
+    body.innerHTML = '<p style="color:#b3261e;">Failed to load report: ' + escHtml(err.message) + '</p>';
+  }
+}
+
+function renderDetailBody(report) {
+  const body = document.getElementById('detailBody');
+  const h = report.header;
+
+  let html = '';
+  // Header info
+  html += '<div class="detail-header-grid">';
+  html += '<div class="detail-cell"><strong>Officer</strong><br>' + escHtml(h.officer) + '</div>';
+  html += '<div class="detail-cell"><strong>Rank</strong><br>' + escHtml(h.rank) + '</div>';
+  html += '<div class="detail-cell"><strong>Division</strong><br>' + escHtml(h.division) + '</div>';
+  html += '<div class="detail-cell"><strong>Month / Year</strong><br>' + escHtml(h.month) + ' ' + escHtml(h.year) + '</div>';
+  html += '</div>';
+
+  html += '<p style="font-size:12px;color:var(--muted);margin:0 0 8px;">Submitted: ' +
+    (h.submissionTimestamp ? formatDate(h.submissionTimestamp) : '—') +
+    ' &middot; ' + report.entryCount + ' entries &middot; Report ID: ' + escHtml(report.reportId) + '</p>';
+
+  // Pages
+  if (report.pages && report.pages.length > 0) {
+    report.pages.forEach(page => {
+      html += '<div class="detail-page-title">Page ' + page.page + '</div>';
+      html += '<table class="detail-table"><thead><tr>';
+      html += '<th>Date</th><th>Day</th><th>Employer</th><th>Vehicle</th><th>Type</th><th>Start</th><th>End</th><th>Hours</th>';
+      html += '</tr></thead><tbody>';
+
+      (page.entries || []).forEach(entry => {
+        html += '<tr>';
+        html += '<td>' + escHtml(entry.dateWorked) + '</td>';
+        html += '<td>' + escHtml(entry.day) + '</td>';
+        html += '<td>' + escHtml(entry.employer) + '</td>';
+        html += '<td>' + escHtml(entry.vehicle) + '</td>';
+        html += '<td>' + escHtml(entry.type) + '</td>';
+        html += '<td>' + formatTime(entry.start) + '</td>';
+        html += '<td>' + formatTime(entry.end) + '</td>';
+        html += '<td>' + escHtml(entry.hours) + '</td>';
+        html += '</tr>';
+      });
+
+      html += '</tbody></table>';
+
+      // Signatures
+      html += '<div class="detail-sigs">';
+      html += '<div class="detail-sig-block"><label>Officer Signature</label>';
+      if (page.sigOfficer && page.sigOfficer.length > 10) {
+        html += '<img src="' + escHtml(page.sigOfficer) + '" alt="Officer signature">';
+      } else {
+        html += '<div class="not-signed">(Not signed)</div>';
+      }
+      html += '</div>';
+
+      html += '<div class="detail-sig-block"><label>Commander Signature</label>';
+      if (page.sigCommander && page.sigCommander.length > 10) {
+        html += '<img src="' + escHtml(page.sigCommander) + '" alt="Commander signature">';
+      } else {
+        html += '<div class="not-signed">(Not signed)</div>';
+      }
+      html += '</div>';
+      html += '</div>';
+    });
+  }
+
+  body.innerHTML = html;
+}
+
+// ============================================================
+//  HELPERS
+// ============================================================
+function escHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function formatDate(iso) {
+  try {
+    return new Date(iso).toLocaleString();
+  } catch (e) {
+    return String(iso);
+  }
+}
+
+function formatTime(minutesStr) {
+  if (!minutesStr) return '';
+  const m = parseInt(minutesStr, 10);
+  if (isNaN(m)) return minutesStr;
+  const h24 = Math.floor(m / 60);
+  const min = m % 60;
+  const ampm = h24 < 12 ? 'AM' : 'PM';
+  let h12 = h24 % 12;
+  if (h12 === 0) h12 = 12;
+  return h12 + ':' + String(min).padStart(2, '0') + ' ' + ampm;
+}
+
+// ============================================================
+//  EVENT BINDINGS
+// ============================================================
+document.getElementById('refreshBtn').addEventListener('click', fetchData);
+
+document.getElementById('detailClose').addEventListener('click', () => {
+  document.getElementById('detailModal').classList.add('hidden');
+  document.body.style.overflow = '';
+});
+
+document.getElementById('detailModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('detailModal')) {
+    document.getElementById('detailModal').classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+});
+
+['filterOfficer', 'filterMonth', 'filterYear'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => {
+    renderTable(allReports);
+  });
+});
+
+// Close detail modal with Escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    const detailModal = document.getElementById('detailModal');
+    if (!detailModal.classList.contains('hidden')) {
+      detailModal.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+  }
+});
+</script>
+
+</body>
+</html>
