@@ -510,6 +510,22 @@
     .sheet.pdf-capture .sheet-header{margin-bottom:10px !important;}
     .sheet.pdf-capture input.date-native{display:none;}
     .sheet.pdf-capture input.date-display{text-align:center !important;}
+
+    /* ===== SUBMIT BUTTON & READ-ONLY MODE ===== */
+    .btn-submit{background:#1a7a3d;color:#fff;}
+    .btn-submit:hover{filter:brightness(1.1);}
+    .btn-submit:disabled{background:#a3d4b5;cursor:not-allowed;}
+    .toolbar-divider{width:1px;height:24px;background:var(--line);margin:0 4px;flex-shrink:0;}
+    .submitted-banner{
+      max-width:900px;margin:0 auto 16px;
+      background:#e8f5e9;border:1px solid #a5d6a7;border-radius:10px;
+      padding:12px 16px;display:flex;align-items:center;gap:10px;
+      font-size:13px;color:#1a7a3d;font-weight:600;
+    }
+    .submitted-banner.hidden{display:none;}
+    body.submitted .sheet input,
+    body.submitted .sheet select{pointer-events:none;opacity:.85;}
+    body.submitted canvas.sig-pad{pointer-events:none;opacity:.85;cursor:default;}
   </style>
 </head>
 <body>
@@ -526,8 +542,15 @@
     <button class="btn-secondary" id="saveBtn">💾 Save Progress</button>
     <button class="btn-secondary" id="loadBtn">📂 Load Progress</button>
     <button class="btn-danger" id="clearBtn">🗑️ Clear All</button>
+    <div class="toolbar-divider"></div>
+    <button class="btn-submit" id="submitBtn">📤 Submit Report</button>
   </div>
   <input type="file" id="fileInput" accept=".json" style="display:none">
+</div>
+
+<div class="submitted-banner hidden" id="submittedBanner">
+  <span style="font-size:18px;">&#10003;</span>
+  <span id="submittedBannerText">Report submitted successfully.</span>
 </div>
 
 <div class="save-note" id="saveNote"></div>
@@ -543,6 +566,13 @@
 //  CONFIGURATION – 20 rows per page
 // ============================================
 const ROWS_PER_PAGE = 20;
+
+// ============================================
+//  SUBMISSION CONFIGURATION
+// ============================================
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec';
+const SUBMISSION_SECRET = 'YOUR_SECRET_KEY_HERE';
+const SUBMISSION_KEY = 'employmentForm_submission';
 
 const pagesEl = document.getElementById('pages');
 let pageCount = 0;
@@ -790,6 +820,10 @@ function addPage(){
   const removeBtn = sheet.querySelector('.remove-page-btn');
   if(removeBtn){
     removeBtn.addEventListener('click', ()=>{
+      if (localStorage.getItem(SUBMISSION_KEY)) {
+        showSaveNote('Cannot modify a submitted report.', 'error');
+        return;
+      }
       delete sigPads[`sig-officer-${pid}`];
       delete sigPads[`sig-commander-${pid}`];
       sheet.remove();
@@ -825,7 +859,7 @@ function renumberPages(){
 //  STATE COLLECTION / APPLICATION
 // ============================================
 
-function collectPageData(sheet) {
+function collectPageData(sheet, compress) {
   const rows = [];
   sheet.querySelectorAll('tbody tr').forEach(tr => {
     const dateNative = tr.querySelector('.date-native');
@@ -847,8 +881,10 @@ function collectPageData(sheet) {
   });
 
   const pageId = sheet.dataset.page;
-  const sigOfficer = sigPads[`sig-officer-${pageId}`]?.toDataURL() || '';
-  const sigCommander = sigPads[`sig-commander-${pageId}`]?.toDataURL() || '';
+  const fmt = compress ? 'image/jpeg' : undefined;
+  const qual = compress ? 0.3 : undefined;
+  const sigOfficer = sigPads[`sig-officer-${pageId}`]?.toDataURL(fmt, qual) || '';
+  const sigCommander = sigPads[`sig-commander-${pageId}`]?.toDataURL(fmt, qual) || '';
 
   return { rows, sigOfficer, sigCommander };
 }
@@ -867,10 +903,10 @@ function collectHeaderData() {
   return { officer, rank, division, month, year };
 }
 
-function getFullState() {
+function getFullState(compress) {
   const sheets = document.querySelectorAll('.sheet');
   const pages = [];
-  sheets.forEach(sheet => pages.push(collectPageData(sheet)));
+  sheets.forEach(sheet => pages.push(collectPageData(sheet, compress)));
   const header = collectHeaderData();
   return { header, pages };
 }
@@ -887,6 +923,71 @@ function loadFromLocalStorage() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return null;
   try { return JSON.parse(raw); } catch { return null; }
+}
+
+// ============================================
+//  SUBMISSION STATUS / READ-ONLY MODE
+// ============================================
+
+function checkSubmissionStatus() {
+  const sub = localStorage.getItem(SUBMISSION_KEY);
+  if (sub) {
+    try {
+      const data = JSON.parse(sub);
+      if (data.submitted) {
+        setReadonlyMode(data.timestamp);
+        return true;
+      }
+    } catch (e) {}
+  }
+  return false;
+}
+
+function setReadonlyMode(timestamp) {
+  document.body.classList.add('submitted');
+  document.getElementById('submitBtn').disabled = true;
+  document.getElementById('submitBtn').textContent = '✅ Submitted';
+  document.getElementById('clearBtn').disabled = true;
+  document.getElementById('addPageBtn').disabled = true;
+  document.getElementById('loadBtn').disabled = true;
+  const banner = document.getElementById('submittedBanner');
+  banner.classList.remove('hidden');
+  document.getElementById('submittedBannerText').textContent =
+    'Report submitted on ' + new Date(timestamp).toLocaleString() + '. This form is now read-only.';
+}
+
+function computeHoursFromValues(start, end) {
+  if (!start || !end) return '';
+  let diff = parseInt(end) - parseInt(start);
+  if (diff <= 0) diff += 24 * 60;
+  return (diff / 60).toFixed(2);
+}
+
+function flattenForSubmission(state) {
+  const rows = [];
+  state.pages.forEach((page, pageIdx) => {
+    if (!page.rows) return;
+    page.rows.forEach(row => {
+      if (!row.date) return;
+      rows.push({
+        page: pageIdx + 1,
+        date: row.date,
+        day: row.day,
+        employer: row.employer,
+        vehicle: row.vehicle,
+        type: row.type,
+        start: row.start,
+        end: row.end,
+        hours: computeHoursFromValues(row.start, row.end)
+      });
+    });
+  });
+  return {
+    secretKey: SUBMISSION_SECRET,
+    header: state.header,
+    pages: state.pages,
+    rows: rows
+  };
 }
 
 function applyState(state) {
@@ -1001,6 +1102,10 @@ function importStateFromFile(file) {
 }
 
 function clearAll() {
+  if (localStorage.getItem(SUBMISSION_KEY)) {
+    showSaveNote('Cannot clear a submitted report.', 'error');
+    return;
+  }
   if (!confirm('This will delete ALL data. Are you sure?')) return;
   
   document.querySelectorAll('.sheet').forEach(el => el.remove());
@@ -1072,6 +1177,65 @@ document.getElementById('fileInput').addEventListener('change', (e)=>{
   }
 });
 
+// ---- SUBMIT REPORT ----
+document.getElementById('submitBtn').addEventListener('click', async () => {
+  // Already submitted?
+  if (localStorage.getItem(SUBMISSION_KEY)) {
+    showSaveNote('This report has already been submitted.', 'error');
+    return;
+  }
+
+  // Validate header fields
+  const state = getFullState(true);
+  if (!state.header.officer || !state.header.rank || !state.header.division || !state.header.month || !state.header.year) {
+    showSaveNote('Please complete all header fields (Officer, Rank, Division, Month/Year) before submitting.', 'error');
+    return;
+  }
+
+  // Check at least one row has data
+  const hasData = state.pages.some(p => p.rows.some(r => r.date));
+  if (!hasData) {
+    showSaveNote('Please enter at least one work entry before submitting.', 'error');
+    return;
+  }
+
+  // Confirm
+  if (!confirm('Submit this report to Google Sheets?\nThe form will become read-only after submission.')) return;
+
+  const submitBtn = document.getElementById('submitBtn');
+  submitBtn.disabled = true;
+  submitBtn.textContent = '⏳ Submitting...';
+  showSaveNote('Submitting report...', '');
+
+  try {
+    const payload = flattenForSubmission(state);
+    const response = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify(payload),
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    if (!response.ok) throw new Error('Server returned status ' + response.status);
+
+    const result = await response.json();
+    if (result.success) {
+      localStorage.setItem(SUBMISSION_KEY, JSON.stringify({
+        submitted: true,
+        timestamp: new Date().toISOString(),
+        reportId: result.reportId
+      }));
+      setReadonlyMode(new Date().toISOString());
+      showSaveNote('Report submitted successfully! ' + result.entriesAdded + ' entries saved.', 'success');
+    } else {
+      throw new Error(result.error || 'Submission failed');
+    }
+  } catch (err) {
+    showSaveNote('Submission failed: ' + err.message + '. Your data is saved locally — try again later.', 'error');
+    submitBtn.disabled = false;
+    submitBtn.textContent = '📤 Submit Report';
+  }
+});
+
 // ---- START ----
 attachAutoSave();
 
@@ -1081,6 +1245,7 @@ if (saved) {
 } else {
   addPage();
 }
+checkSubmissionStatus();
 </script>
 
 </body>
