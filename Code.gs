@@ -9,6 +9,13 @@
 
 const SECRET_KEY = 'CHANGE_ME_TO_A_RANDOM_STRING';
 const SHEET_NAME = 'Submissions';
+const AUDIT_SHEET_NAME = 'AuditLog';
+
+// Admin credentials: display name -> PIN
+// Add more admins here as needed.
+const ADMINS = {
+  'Admin': '0911'
+};
 
 // Column headers — must match the sheet's row 1
 const HEADERS = [
@@ -35,20 +42,47 @@ function doPost(e) {
       return jsonResponse(400, { success: false, error: 'Invalid JSON' });
     }
 
-    // 2. Validate secret key
+    // 2. Login action: verify name + PIN against ADMINS, log the attempt
+    if (data.action === 'login') {
+      var name = data.adminName || '';
+      var pin = String(data.pin || '');
+      if (ADMINS.hasOwnProperty(name) && String(ADMINS[name]) === pin) {
+        logAudit(name, 'login', 'Successful login');
+        return jsonResponse(200, { success: true, adminName: name });
+      } else {
+        logAudit(name || 'unknown', 'login_failed', 'Failed login attempt');
+        return jsonResponse(200, { success: false, error: 'Invalid name or PIN' });
+      }
+    }
+
+    // 3. All other actions require the secret key
     if (data.secretKey !== SECRET_KEY) {
       return jsonResponse(403, { success: false, error: 'Unauthorized' });
     }
 
-    // 2b. Delete action: remove all rows for a given reportId
+    // 3a. Delete action: remove all rows for a given reportId
     if (data.action === 'delete') {
       if (!data.reportId) {
         return jsonResponse(400, { success: false, error: 'Missing reportId' });
       }
-      return jsonResponse(200, deleteReportById(data.reportId));
+      var delResult = deleteReportById(data.reportId);
+      logAudit(data.adminName || 'unknown', 'delete',
+        'Deleted report ' + data.reportId + ' (' + delResult.deleted + ' rows)');
+      return jsonResponse(200, delResult);
     }
 
-    // 3. Validate payload structure
+    // 3b. View action: log that a report was viewed
+    if (data.action === 'view') {
+      logAudit(data.adminName || 'unknown', 'view', 'Viewed report ' + (data.reportId || ''));
+      return jsonResponse(200, { success: true });
+    }
+
+    // 3c. Audit log action: fetch the audit entries
+    if (data.action === 'get_audit') {
+      return jsonResponse(200, getAuditEntries());
+    }
+
+    // 4. Validate payload structure
     if (!data.header || !data.pages || !Array.isArray(data.pages) || data.pages.length === 0) {
       return jsonResponse(400, { success: false, error: 'Missing header or pages data' });
     }
@@ -274,6 +308,39 @@ function computeHours(start, end) {
   var diff = e - s;
   if (diff <= 0) diff += 24 * 60;
   return (diff / 60).toFixed(2);
+}
+
+// ---------- Helper: Append an audit log entry ----------
+function logAudit(adminName, action, detail) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName(AUDIT_SHEET_NAME);
+    if (!sheet) {
+      sheet = ss.insertSheet(AUDIT_SHEET_NAME);
+      sheet.getRange(1, 1, 1, 4).setValues([['Timestamp', 'AdminName', 'Action', 'Detail']]);
+    }
+    sheet.appendRow([new Date(), adminName, action, detail]);
+  } catch (err) {
+    // Never let audit logging break the main action
+  }
+}
+
+// ---------- Helper: Fetch recent audit entries (newest first) ----------
+function getAuditEntries() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(AUDIT_SHEET_NAME);
+  if (!sheet || sheet.getLastRow() <= 1) return [];
+  var values = sheet.getDataRange().getValues();
+  var headers = values[0];
+  var rows = values.slice(1).reverse(); // newest first
+  return rows.map(function (row) {
+    return {
+      timestamp: row[0],
+      adminName: row[1],
+      action: row[2],
+      detail: row[3]
+    };
+  });
 }
 
 // ---------- Helper: Delete all rows for a reportId ----------

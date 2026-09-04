@@ -92,11 +92,16 @@ Timestamp | Officer | Rank | Division | Month | Year | ReportID | Page | DateWor
    ```javascript
    const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfyc...your_actual_url/exec';
    ```
-4. (Optional) Change the admin PIN from `'1234'`:
-   ```javascript
-   const ADMIN_PIN = '1234';  // Change this to your desired PIN
-   ```
 5. Save the file
+
+> **Note on admin credentials:** Since v2, admin logins are verified **server-side** in Code.gs against the `ADMINS` map. The admin page no longer hardcodes a PIN. To add/change admins, edit `ADMINS` in Code.gs:
+> ```javascript
+> const ADMINS = {
+>   'Admin': '0911',
+>   // 'OtherAdmin': '1234'
+> };
+> ```
+> Make sure `ADMIN_SECRET` in `admin.html` matches `SECRET_KEY` in `Code.gs`.
 
 ---
 
@@ -160,11 +165,22 @@ If you modify `Code.gs` in the future:
 
 ---
 
+## Audit Log
+
+The admin portal records an **audit trail** of activity to a separate `AuditLog` sheet (created automatically):
+
+- **login** — successful admin login (name + PIN)
+- **login_failed** — failed login attempts (good for spotting unauthorized access)
+- **view** — when an admin opens a report's detail view
+- **delete** — when an admin deletes a report
+
+View it by clicking the **📃 Audit Log** button in the admin header. Because login is verified against the `ADMINS` map in Code.gs, each action is attributed to the specific admin who performed it.
+
 ## Security Notes
 
 - The `SECRET_KEY` in `Code.gs` prevents random HTTP requests from writing to your sheet
-- The admin PIN is a **basic deterrent** — it is visible in the HTML source
-- For stronger security, consider hosting the admin page behind proper authentication
+- Admin logins are verified **server-side** against the `ADMINS` map in Code.gs, and every login/view/delete is logged to the `AuditLog` sheet
+- The PINs stored in `ADMINS` are a **basic deterrent** — for stronger security, consider hosting the admin page behind proper authentication
 - Google Apps Script has a quota of ~20,000 calls/day on free accounts — sufficient for a department of ~50 officers submitting monthly
 - Signature data is stored as compressed JPEG base64 strings (~3-8KB each), well within Google Sheets' 50KB cell limit
 

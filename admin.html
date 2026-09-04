@@ -367,14 +367,16 @@
 </head>
 <body>
 
-  <!-- ===== PIN MODAL ===== -->
+  <!-- ===== LOGIN MODAL ===== -->
   <div class="modal-overlay" id="pinModal">
     <div class="modal-content pin-modal">
       <h2>&#128274; Admin Access</h2>
-      <p>Enter PIN to view submissions:</p>
+      <p>Enter your name and PIN:</p>
+      <input type="text" id="adminNameInput" placeholder="Name"
+             autocomplete="off" style="margin-bottom:12px;letter-spacing:normal;font-size:16px;text-align:center;">
       <input type="password" id="pinInput" maxlength="4" placeholder="****"
              inputmode="numeric" pattern="[0-9]*" autocomplete="off">
-      <div class="pin-error hidden" id="pinError">Incorrect PIN. Try again.</div>
+      <div class="pin-error hidden" id="pinError">Incorrect name or PIN. Try again.</div>
       <button class="btn-primary" id="pinSubmit" style="width:100%;">Enter</button>
     </div>
   </div>
@@ -386,6 +388,7 @@
       <h1>PAPD - Report Submissions</h1>
       <div class="admin-header-right">
         <button class="btn-primary" id="refreshBtn">&#8635; Refresh Data</button>
+        <button class="btn-secondary" id="auditBtn">&#128203; Audit Log</button>
         <a href="index.html" class="btn-secondary" style="text-decoration:none;display:inline-block;">Back to Form</a>
       </div>
     </div>
@@ -441,39 +444,90 @@
     </div>
   </div>
 
+  <!-- ===== AUDIT LOG MODAL ===== -->
+  <div class="modal-overlay hidden" id="auditModal">
+    <div class="modal-content detail-modal">
+      <div class="modal-header">
+        <h2>Audit Log</h2>
+        <button class="modal-close" id="auditClose">&times;</button>
+      </div>
+      <div class="modal-body" id="auditBody"></div>
+    </div>
+  </div>
+
 <script>
 // ============================================================
 //  CONFIGURATION
 // ============================================================
 const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxxvEqvSE2CAdUlkP3EFQhuGpR3bWHXmt7VM-w-aE48m-BN2yBLTxQ6z7nH7cTmtM-6/exec';
-const ADMIN_PIN = '0911';
 const ADMIN_SECRET = 'a3f8b2c1d4e5f6a7b8c9d0e1f2a3b4c9'; // Must match SECRET_KEY in Code.gs
 
 let allReports = [];
+let currentAdmin = ''; // Set after successful login
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 // ============================================================
-//  PIN VERIFICATION
+//  LOGIN VERIFICATION (server-side, audit logged)
 // ============================================================
-function verifyPin() {
-  const input = document.getElementById('pinInput');
-  if (input.value === ADMIN_PIN) {
-    document.getElementById('pinModal').classList.add('hidden');
-    document.getElementById('mainContent').classList.remove('hidden');
-    fetchData();
-  } else {
-    document.getElementById('pinError').classList.remove('hidden');
-    input.value = '';
-    input.focus();
+async function verifyLogin() {
+  const nameInput = document.getElementById('adminNameInput');
+  const pinInput = document.getElementById('pinInput');
+  const pinError = document.getElementById('pinError');
+  const submitBtn = document.getElementById('pinSubmit');
+
+  if (!nameInput.value.trim()) {
+    pinError.textContent = 'Please enter your name.';
+    pinError.classList.remove('hidden');
+    nameInput.focus();
+    return;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Checking...';
+
+  try {
+    const response = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'login',
+        adminName: nameInput.value.trim(),
+        pin: pinInput.value
+      })
+    });
+
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const result = await response.json();
+
+    if (result.success) {
+      currentAdmin = result.adminName;
+      pinError.classList.add('hidden');
+      document.getElementById('pinModal').classList.add('hidden');
+      document.getElementById('mainContent').classList.remove('hidden');
+      fetchData();
+    } else {
+      pinError.textContent = 'Incorrect name or PIN. Try again.';
+      pinError.classList.remove('hidden');
+      pinInput.value = '';
+      pinInput.focus();
+    }
+  } catch (err) {
+    pinError.textContent = 'Login failed: ' + err.message;
+    pinError.classList.remove('hidden');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = 'Enter';
   }
 }
 
-document.getElementById('pinSubmit').addEventListener('click', verifyPin);
+document.getElementById('pinSubmit').addEventListener('click', verifyLogin);
 document.getElementById('pinInput').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') verifyPin();
+  if (e.key === 'Enter') verifyLogin();
 });
-// Focus PIN input on load
-document.getElementById('pinInput').focus();
+document.getElementById('adminNameInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') document.getElementById('pinInput').focus();
+});
+// Focus name input on load
+document.getElementById('adminNameInput').focus();
 
 // ============================================================
 //  DATA FETCHING
@@ -605,6 +659,17 @@ async function showDetail(reportId) {
   modal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 
+  // Log the view (fire-and-forget — never block the detail on this)
+  fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'view',
+      reportId: reportId,
+      adminName: currentAdmin,
+      secretKey: ADMIN_SECRET
+    })
+  }).catch(() => {});
+
   try {
     const response = await fetch(APPS_SCRIPT_URL + '?reportId=' + encodeURIComponent(reportId));
     if (!response.ok) throw new Error('HTTP ' + response.status);
@@ -698,6 +763,7 @@ async function deleteReport(reportId) {
       body: JSON.stringify({
         action: 'delete',
         reportId: reportId,
+        adminName: currentAdmin,
         secretKey: ADMIN_SECRET
       })
     });
@@ -720,6 +786,65 @@ async function deleteReport(reportId) {
   } catch (err) {
     alert('Failed to delete report: ' + err.message);
   }
+}
+
+// ============================================================
+//  AUDIT LOG
+// ============================================================
+async function openAuditLog() {
+  const modal = document.getElementById('auditModal');
+  const body = document.getElementById('auditBody');
+  body.innerHTML = '<p style="text-align:center;color:var(--muted);padding:40px;">Loading audit log...</p>';
+  modal.classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+
+  try {
+    const response = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      body: JSON.stringify({
+        action: 'get_audit',
+        adminName: currentAdmin,
+        secretKey: ADMIN_SECRET
+      })
+    });
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const entries = await response.json();
+
+    if (!entries || entries.length === 0) {
+      body.innerHTML = '<div class="empty-state">No audit entries yet.</div>';
+      return;
+    }
+
+    renderAuditLog(entries);
+  } catch (err) {
+    body.innerHTML = '<p style="color:#b3261e;text-align:center;padding:40px;">Failed to load audit log: ' + escHtml(err.message) + '</p>';
+  }
+}
+
+function renderAuditLog(entries) {
+  const body = document.getElementById('auditBody');
+  let html = '<table class="detail-table"><thead><tr>';
+  html += '<th>Time</th><th>Admin</th><th>Action</th><th>Detail</th>';
+  html += '</tr></thead><tbody>';
+
+  entries.forEach(entry => {
+    const action = entry.action || '';
+    let actionLabel = action;
+    if (action === 'login') actionLabel = '&#128273; Login';
+    else if (action === 'login_failed') actionLabel = '&#9888;&#65039; Failed login';
+    else if (action === 'delete') actionLabel = '&#128465;&#65039; Delete';
+    else if (action === 'view') actionLabel = '&#128065; View';
+
+    html += '<tr>';
+    html += '<td>' + formatDate(entry.timestamp) + '</td>';
+    html += '<td><strong>' + escHtml(entry.adminName) + '</strong></td>';
+    html += '<td>' + actionLabel + '</td>';
+    html += '<td>' + escHtml(entry.detail) + '</td>';
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  body.innerHTML = html;
 }
 
 // ============================================================
@@ -759,6 +884,20 @@ function formatTime(minutesStr) {
 // ============================================================
 document.getElementById('refreshBtn').addEventListener('click', fetchData);
 
+document.getElementById('auditBtn').addEventListener('click', openAuditLog);
+
+document.getElementById('auditClose').addEventListener('click', () => {
+  document.getElementById('auditModal').classList.add('hidden');
+  document.body.style.overflow = '';
+});
+
+document.getElementById('auditModal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('auditModal')) {
+    document.getElementById('auditModal').classList.add('hidden');
+    document.body.style.overflow = '';
+  }
+});
+
 document.getElementById('detailClose').addEventListener('click', () => {
   document.getElementById('detailModal').classList.add('hidden');
   document.body.style.overflow = '';
@@ -777,12 +916,16 @@ document.getElementById('detailModal').addEventListener('click', (e) => {
   });
 });
 
-// Close detail modal with Escape key
+// Close modals with Escape key
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     const detailModal = document.getElementById('detailModal');
+    const auditModal = document.getElementById('auditModal');
     if (!detailModal.classList.contains('hidden')) {
       detailModal.classList.add('hidden');
+      document.body.style.overflow = '';
+    } else if (!auditModal.classList.contains('hidden')) {
+      auditModal.classList.add('hidden');
       document.body.style.overflow = '';
     }
   }
