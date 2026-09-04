@@ -382,10 +382,11 @@
     }
 
     .sig-section{
-      margin-top:24px;
+      margin:24px auto 0;
       display:grid;
       grid-template-columns:1fr;
       gap:20px;
+      max-width:460px;
     }
     .sig-block{
       border:1px solid var(--line-strong);
@@ -447,11 +448,20 @@
       .sheet:not(:last-child){
         page-break-after:always;
       }
+      /* Reset the mobile card layout so print always uses a real table */
+      thead{display:table-header-group;}
+      table, tbody, tr, td{display:table;}
+      tbody tr{display:table-row;border:none;border-radius:0;padding:0;margin:0;gap:0;background:transparent;}
+      tbody td{display:table-cell;min-height:0;padding:0;overflow:hidden;position:static;}
+      tbody td::before{content:none !important;}
+      tbody td:nth-child(n){grid-column:auto;}
       .row-del,.table-actions,.sig-controls button{display:none;}
       .time-cell select{appearance:none;-webkit-appearance:none;background:transparent;}
       thead th{background:#eee !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
       .total-row{background:#eee !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
       tbody td{height:22px;}
+      tbody td input,
+      tbody td select{border:none;border-radius:0;background:transparent !important;}
       tbody td input{font-size:10px;padding:0 4px;}
       tbody td select.type-select,
       tbody td select.vehicle-select{font-size:10px;padding:0 2px;}
@@ -476,9 +486,108 @@
       .sheet{padding:20px 16px;}
       .info-grid{grid-template-columns:1fr;}
       .info-cell:nth-child(odd){border-right:none;}
-      .sig-section{grid-template-columns:1fr;}
       .sheet-logo-badge{height:50px;max-width:50px;}
       .sheet-logo-patch{height:40px;max-width:40px;}
+      .toolbar{padding:12px;}
+      .btn-group button{flex:1 1 45%;}
+      .btn-group .toolbar-divider{display:none;}
+
+      /* ---- Table becomes stacked cards on mobile ---- */
+      thead{display:none;}
+      table, tbody, tr, td{display:block;}
+      tbody tr{
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:6px;
+        border:1px solid var(--line);
+        border-radius:8px;
+        padding:10px;
+        margin-bottom:12px;
+        background:#fff;
+      }
+      tbody tr:hover td{background:#fff;}
+      tbody td{
+        border:none;
+        height:auto;
+        max-height:none;
+        min-height:34px;
+        overflow:visible;
+        position:relative;
+        padding:0;
+      }
+      tbody td::before{
+        content:attr(data-label);
+        display:block;
+        font-size:9.5px;
+        text-transform:uppercase;
+        letter-spacing:.04em;
+        color:var(--muted);
+        margin-bottom:2px;
+      }
+      /* Field placement within each card */
+      tbody td:nth-child(1){grid-column:1 / -1;}  /* Date: full width */
+      tbody td:nth-child(2){grid-column:1;}        /* Day */
+      tbody td:nth-child(4){grid-column:2;}        /* Vehicle (next to Day) */
+      tbody td:nth-child(3){grid-column:1 / -1;}  /* Employer: full width */
+      tbody td:nth-child(5){grid-column:1;}        /* Type */
+      tbody td:nth-child(7){grid-column:2;}        /* Hours (next to Type) */
+      tbody td:nth-child(6){grid-column:1 / -1;}  /* Time: full width */
+      tbody td:nth-child(8){grid-column:1 / -1;}  /* Clear row: full width */
+      tbody td input,
+      tbody td select{
+        height:34px;
+        font-size:13px;
+        padding:0 8px;
+        border:1px solid var(--line);
+        border-radius:6px;
+        background:#fff;
+      }
+      tbody td input:focus,
+      tbody td select:focus{border-color:var(--accent);background:#fff;}
+      .date-cell{
+        display:flex;flex-direction:column;align-items:stretch;
+        height:auto;max-height:none;padding:0;
+      }
+      .date-cell input.date-display{
+        pointer-events:none;
+        text-align:left;
+        border:1px solid var(--line);
+        border-radius:6px;
+        height:34px;
+      }
+      /* Native input covers just the display area (not the label) so
+         tapping the date value opens the native picker on any device */
+      .date-cell input.date-native{
+        inset:auto 0 0 0;
+        top:auto;
+        height:34px;
+        opacity:0;
+        z-index:2;
+        pointer-events:auto;
+      }
+      .time-cell{
+        height:auto;padding:0;
+        display:flex;
+        gap:8px;
+        align-items:center;
+      }
+      .time-cell select{height:34px;}
+      .time-sep{font-size:14px;}
+      .hrs-input{font-weight:700;color:var(--accent);text-align:center !important;}
+      .row-del{
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        gap:8px;
+        color:#b3261e;
+        border:1px solid #f2c9c6;
+        border-radius:6px;
+        background:#fff;
+        height:34px;
+        font-size:13px;
+        font-weight:600;
+      }
+      .total-row{flex-wrap:wrap;font-size:12px;}
     }
 
     /* Used only while capturing a page for "Export as PDF". Mirrors the
@@ -498,8 +607,16 @@
     .sheet.pdf-capture .sig-section{grid-template-columns:1fr !important;margin-top:10px !important;gap:10px !important;}
     .sheet.pdf-capture .sig-block{padding:5px 8px 6px !important;}
     .sheet.pdf-capture .sig-pad-wrap canvas.sig-pad{height:44px !important;}
-    .sheet.pdf-capture tbody td{height:22px !important;}
-    .sheet.pdf-capture tbody td input{font-size:10px !important;padding:0 4px !important;}
+    .sheet.pdf-capture thead{display:table-header-group !important;}
+    .sheet.pdf-capture table,
+    .sheet.pdf-capture tbody,
+    .sheet.pdf-capture tr,
+    .sheet.pdf-capture td{display:table !important;}
+    .sheet.pdf-capture tbody tr{display:table-row !important;border:none;border-radius:0;padding:0;margin:0;gap:0;background:transparent;}
+    .sheet.pdf-capture tbody td::before{content:none !important;}
+    .sheet.pdf-capture tbody td{height:22px !important;min-height:0 !important;}
+    .sheet.pdf-capture tbody td input{font-size:10px !important;padding:0 4px !important;border:none !important;border-radius:0 !important;background:transparent !important;}
+    .sheet.pdf-capture tbody td select{border:none !important;border-radius:0 !important;background:transparent !important;}
     .sheet.pdf-capture tbody td select.type-select,
     .sheet.pdf-capture tbody td select.vehicle-select{font-size:10px !important;padding:0 2px !important;}
     .sheet.pdf-capture .time-cell select{font-size:9px !important;padding:1px !important;}
@@ -628,20 +745,20 @@ function formatDateShort(iso){
 function makeRow(){
   const tr = document.createElement('tr');
   tr.innerHTML = `
-    <td class="date-cell">
+    <td class="date-cell" data-label="Date">
       <input type="text" class="date-display" placeholder=" " readonly tabindex="-1">
       <input type="date" class="date-native" aria-label="Date worked">
     </td>
-    <td><input type="text" class="day-input" placeholder="--" readonly tabindex="-1"></td>
-    <td><input type="text" class="employer-input" placeholder=""></td>
-    <td>
+    <td data-label="Day"><input type="text" class="day-input" placeholder="--" readonly tabindex="-1"></td>
+    <td data-label="Employer"><input type="text" class="employer-input" placeholder=""></td>
+    <td data-label="Vehicle">
       <select class="vehicle-select">
         <option value="" class="placeholder"> </option>
         <option value="Yes">Yes</option>
         <option value="No">No</option>
       </select>
     </td>
-    <td>
+    <td data-label="Type">
       <select class="type-select">
         <option value="" class="placeholder"> </option>
         <option value="Traffic">Traffic</option>
@@ -649,13 +766,13 @@ function makeRow(){
         <option value="Other">Other</option>
       </select>
     </td>
-    <td class="time-cell">
+    <td class="time-cell" data-label="Time Worked">
       <select class="time-start">${TIME_OPTIONS_HTML}</select>
       <span class="time-sep">–</span>
       <select class="time-end">${TIME_OPTIONS_HTML}</select>
     </td>
-    <td><input type="text" class="hrs-input" placeholder="" readonly tabindex="-1"></td>
-    <td class="row-del" title="Clear row">✕</td>
+    <td data-label="Hours"><input type="text" class="hrs-input" placeholder="" readonly tabindex="-1"></td>
+    <td class="row-del" data-label="Clear Row" title="Clear row">✕</td>
   `;
 
   const dateNative = tr.querySelector('.date-native');
