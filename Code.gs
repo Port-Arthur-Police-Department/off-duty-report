@@ -45,25 +45,7 @@ function doPost(e) {
       if (!data.reportId) {
         return jsonResponse(400, { success: false, error: 'Missing reportId' });
       }
-      var ss = SpreadsheetApp.getActiveSpreadsheet();
-      var sheet = ss.getSheetByName(SHEET_NAME);
-      if (!sheet || sheet.getLastRow() <= 1) {
-        return jsonResponse(200, { success: true, deleted: 0 });
-      }
-      var allData = sheet.getDataRange().getValues();
-      var reportIds = sheet.getRange(2, 7, sheet.getLastRow() - 1, 1).getValues(); // Column G = ReportID
-      var rowsToDelete = [];
-      for (var i = 0; i < reportIds.length; i++) {
-        if (reportIds[i][0] === data.reportId) {
-          rowsToDelete.push(i + 2); // +2 because row 1 is header, i is 0-indexed from row 2
-        }
-      }
-      // Delete from bottom to top to preserve row indices
-      rowsToDelete.sort(function (a, b) { return b - a; });
-      rowsToDelete.forEach(function (rowNum) {
-        sheet.deleteRow(rowNum);
-      });
-      return jsonResponse(200, { success: true, deleted: rowsToDelete.length });
+      return jsonResponse(200, deleteReportById(data.reportId));
     }
 
     // 3. Validate payload structure
@@ -292,6 +274,28 @@ function computeHours(start, end) {
   var diff = e - s;
   if (diff <= 0) diff += 24 * 60;
   return (diff / 60).toFixed(2);
+}
+
+// ---------- Helper: Delete all rows for a reportId ----------
+function deleteReportById(reportId) {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName(SHEET_NAME);
+  if (!sheet || sheet.getLastRow() <= 1) {
+    return { success: true, deleted: 0 };
+  }
+  var reportIds = sheet.getRange(2, 7, sheet.getLastRow() - 1, 1).getValues(); // Column G = ReportID
+  var rowsToDelete = [];
+  for (var i = 0; i < reportIds.length; i++) {
+    if (reportIds[i][0] === reportId) {
+      rowsToDelete.push(i + 2); // +2 because row 1 is header, i is 0-indexed from row 2
+    }
+  }
+  // Delete from bottom to top to preserve row indices
+  rowsToDelete.sort(function (a, b) { return b - a; });
+  rowsToDelete.forEach(function (rowNum) {
+    sheet.deleteRow(rowNum);
+  });
+  return { success: true, deleted: rowsToDelete.length };
 }
 
 // ---------- Helper: Check if reportId already exists ----------
