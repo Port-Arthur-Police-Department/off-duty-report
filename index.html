@@ -384,7 +384,7 @@
     .sig-section{
       margin-top:24px;
       display:grid;
-      grid-template-columns:1fr 1fr;
+      grid-template-columns:1fr;
       gap:20px;
     }
     .sig-block{
@@ -495,7 +495,7 @@
     }
     .sheet.pdf-capture .info-grid{grid-template-columns:1fr 1fr !important;margin-bottom:10px !important;}
     .sheet.pdf-capture .info-cell:nth-child(odd){border-right:1px solid var(--line-strong) !important;}
-    .sheet.pdf-capture .sig-section{grid-template-columns:1fr 1fr !important;margin-top:10px !important;gap:10px !important;}
+    .sheet.pdf-capture .sig-section{grid-template-columns:1fr !important;margin-top:10px !important;gap:10px !important;}
     .sheet.pdf-capture .sig-block{padding:5px 8px 6px !important;}
     .sheet.pdf-capture .sig-pad-wrap canvas.sig-pad{height:44px !important;}
     .sheet.pdf-capture tbody td{height:22px !important;}
@@ -803,14 +803,6 @@ function addPage(){
           <button class="clear-sig-btn" data-target="sig-officer-${pid}">Clear</button>
         </div>
       </div>
-      <div class="sig-block">
-        <label>Unit / Watch Commander Signature</label>
-        <div class="sig-pad-wrap"><canvas class="sig-pad" id="sig-commander-${pid}"></canvas></div>
-        <div class="sig-controls">
-          <small>Sign with mouse or touch</small>
-          <button class="clear-sig-btn" data-target="sig-commander-${pid}">Clear</button>
-        </div>
-      </div>
     </div>
   `;
 
@@ -827,7 +819,6 @@ function addPage(){
         return;
       }
       delete sigPads[`sig-officer-${pid}`];
-      delete sigPads[`sig-commander-${pid}`];
       sheet.remove();
       renumberPages();
       updateTotal(sheet);
@@ -886,9 +877,8 @@ function collectPageData(sheet, compress) {
   const fmt = compress ? 'image/jpeg' : undefined;
   const qual = compress ? 0.3 : undefined;
   const sigOfficer = sigPads[`sig-officer-${pageId}`]?.toDataURL(fmt, qual) || '';
-  const sigCommander = sigPads[`sig-commander-${pageId}`]?.toDataURL(fmt, qual) || '';
 
-  return { rows, sigOfficer, sigCommander };
+  return { rows, sigOfficer };
 }
 
 function collectHeaderData() {
@@ -1083,12 +1073,8 @@ function restorePageFromData(pageData, pageIndex) {
 
   const pid = sheet.dataset.page;
   const officerPad = sigPads[`sig-officer-${pid}`];
-  const commanderPad = sigPads[`sig-commander-${pid}`];
   if (officerPad && pageData.sigOfficer) {
     try { officerPad.fromDataURL(pageData.sigOfficer); } catch(e) {}
-  }
-  if (commanderPad && pageData.sigCommander) {
-    try { commanderPad.fromDataURL(pageData.sigCommander); } catch(e) {}
   }
 }
 

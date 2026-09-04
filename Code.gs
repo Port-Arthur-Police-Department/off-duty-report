@@ -206,12 +206,15 @@ function getSummaries(dataRows, headers) {
         year: row[5],
         submissionTimestamp: row[0],
         entryCount: 0,
+        totalHours: 0,
         hasOfficerSig: false,
         hasCommanderSig: false
       };
     }
 
     groups[reportId].entryCount++;
+    var h = parseFloat(row[15]);  // Hours column
+    if (!isNaN(h)) groups[reportId].totalHours += h;
     if (row[18]) groups[reportId].hasOfficerSig = true;   // HasOfficerSig
     if (row[19]) groups[reportId].hasCommanderSig = true;  // HasCommanderSig
   });
@@ -282,6 +285,7 @@ function getReportDetail(dataRows, headers, reportId) {
   });
 
   var pages = [];
+  var totalHours = 0;
   Object.keys(pageMap).sort(function (a, b) { return a - b; }).forEach(function (p) {
     pages.push({
       page: parseInt(p),
@@ -291,11 +295,17 @@ function getReportDetail(dataRows, headers, reportId) {
     });
   });
 
+  entries.forEach(function (entry) {
+    var h = parseFloat(entry.hours);
+    if (!isNaN(h)) totalHours += h;
+  });
+
   return {
     reportId: reportId,
     header: headerInfo,
     pages: pages,
-    entryCount: entries.length
+    entryCount: entries.length,
+    totalHours: totalHours
   };
 }
 
