@@ -526,6 +526,7 @@
     body.submitted .sheet input,
     body.submitted .sheet select{pointer-events:none;opacity:.85;}
     body.submitted canvas.sig-pad{pointer-events:none;opacity:.85;cursor:default;}
+    body.submitted .clear-sig-btn{pointer-events:none;opacity:.5;cursor:default;}
   </style>
 </head>
 <body>
@@ -544,6 +545,7 @@
     <button class="btn-danger" id="clearBtn">🗑️ Clear All</button>
     <div class="toolbar-divider"></div>
     <button class="btn-submit" id="submitBtn">📤 Submit Report</button>
+    <a href="admin.html" class="btn-secondary" title="Admin Portal" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;">⚙️ Admin</a>
   </div>
   <input type="file" id="fileInput" accept=".json" style="display:none">
 </div>
@@ -1102,19 +1104,29 @@ function importStateFromFile(file) {
 }
 
 function clearAll() {
-  if (localStorage.getItem(SUBMISSION_KEY)) {
-    showSaveNote('Cannot clear a submitted report.', 'error');
-    return;
-  }
-  if (!confirm('This will delete ALL data. Are you sure?')) return;
-  
+  const wasSubmitted = !!localStorage.getItem(SUBMISSION_KEY);
+  const msg = wasSubmitted
+    ? 'This report was already submitted. Clear all data and start a new report?'
+    : 'This will delete ALL data. Are you sure?';
+  if (!confirm(msg)) return;
+
   document.querySelectorAll('.sheet').forEach(el => el.remove());
   pageCount = 0;
   for (const key in sigPads) delete sigPads[key];
-  
+
+  // Remove submission status so the form is editable again
+  localStorage.removeItem(SUBMISSION_KEY);
+  document.body.classList.remove('submitted');
+  document.getElementById('submitBtn').disabled = false;
+  document.getElementById('submitBtn').textContent = '📤 Submit Report';
+  document.getElementById('clearBtn').disabled = false;
+  document.getElementById('addPageBtn').disabled = false;
+  document.getElementById('loadBtn').disabled = false;
+  document.getElementById('submittedBanner').classList.add('hidden');
+
   addPage();
   localStorage.removeItem(STORAGE_KEY);
-  showSaveNote('All data cleared.', 'success');
+  showSaveNote('All data cleared. Ready for a new report.', 'success');
 }
 
 function attachAutoSave() {
