@@ -711,7 +711,7 @@ function initSigPad(canvas){
     canvas.getContext('2d').scale(ratio, ratio);
   }
   resize();
-  const pad = new SignaturePad(canvas, {backgroundColor:'rgba(255,255,255,0)', penColor:'#1a1d21'});
+  const pad = new SignaturePad(canvas, {backgroundColor:'#ffffff', penColor:'#1a1d21'});
   window.addEventListener('resize', ()=>{ const data = pad.toData(); resize(); pad.fromData(data); });
   return pad;
 }
