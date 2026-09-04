@@ -949,13 +949,33 @@ function setReadonlyMode(timestamp) {
   document.body.classList.add('submitted');
   document.getElementById('submitBtn').disabled = true;
   document.getElementById('submitBtn').textContent = '✅ Submitted';
-  document.getElementById('clearBtn').disabled = true;
   document.getElementById('addPageBtn').disabled = true;
   document.getElementById('loadBtn').disabled = true;
   const banner = document.getElementById('submittedBanner');
   banner.classList.remove('hidden');
   document.getElementById('submittedBannerText').textContent =
-    'Report submitted on ' + new Date(timestamp).toLocaleString() + '. This form is now read-only.';
+    'Report submitted on ' + new Date(timestamp).toLocaleString() + '. This form is now read-only. Use "Clear All" to start a new report.';
+}
+
+// Reset the form to a fresh blank state after submission
+function resetForNewReport(message) {
+  document.querySelectorAll('.sheet').forEach(el => el.remove());
+  pageCount = 0;
+  for (const key in sigPads) delete sigPads[key];
+
+  // Remove submission status so the form is editable again
+  localStorage.removeItem(SUBMISSION_KEY);
+  localStorage.removeItem(STORAGE_KEY);
+  document.body.classList.remove('submitted');
+  document.getElementById('submitBtn').disabled = false;
+  document.getElementById('submitBtn').textContent = '📤 Submit Report';
+  document.getElementById('clearBtn').disabled = false;
+  document.getElementById('addPageBtn').disabled = false;
+  document.getElementById('loadBtn').disabled = false;
+  document.getElementById('submittedBanner').classList.add('hidden');
+
+  addPage();
+  if (message) showSaveNote(message, 'success');
 }
 
 function computeHoursFromValues(start, end) {
@@ -1212,7 +1232,7 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
   }
 
   // Confirm
-  if (!confirm('Submit this report to Google Sheets?\nThe form will become read-only after submission.')) return;
+  if (!confirm('Submit this report to Google Sheets?\nThe form will be cleared and ready for a new report after submission.')) return;
 
   const submitBtn = document.getElementById('submitBtn');
   submitBtn.disabled = true;
@@ -1230,13 +1250,8 @@ document.getElementById('submitBtn').addEventListener('click', async () => {
 
     const result = await response.json();
     if (result.success) {
-      localStorage.setItem(SUBMISSION_KEY, JSON.stringify({
-        submitted: true,
-        timestamp: new Date().toISOString(),
-        reportId: result.reportId
-      }));
-      setReadonlyMode(new Date().toISOString());
-      showSaveNote('Report submitted successfully! ' + result.entriesAdded + ' entries saved.', 'success');
+      resetForNewReport('Report submitted successfully! ' + result.entriesAdded +
+        ' entries saved. The form has been cleared — you can start a new report.');
     } else {
       throw new Error(result.error || 'Submission failed');
     }
