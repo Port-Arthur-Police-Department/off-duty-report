@@ -840,70 +840,6 @@ function renderDetailBody(report) {
 //  Builds a print-ready replica of the report (with the PAPD
 //  logo images) like the index.html sheets, then triggers print.
 // ============================================================
-function buildPrintView(report) {
-  const h = report.header;
-  const container = document.getElementById('printContainer');
-  let html = '';
-
-  // Each page becomes its own "sheet" in the print output
-  (report.pages || []).forEach(page => {
-    html += '<div class="print-sheet">';
-    html += '<div class="print-sheet-header">';
-    html += '<img class="print-logo-badge" src="badge.png" alt="" onerror="this.style.visibility=\'hidden\'">';
-    html += '<h1>PAPD - Off-Duty Employment Report<span class="cont"></span></h1>';
-    html += '<img class="print-logo-patch" src="patch.png" alt="" onerror="this.style.visibility=\'hidden\'">';
-    html += '</div>';
-
-    html += '<div class="print-info-grid">';
-    html += '<div class="print-info-cell"><label>Officer:</label>' + escHtml(h.officer) + '</div>';
-    html += '<div class="print-info-cell"><label>Rank:</label>' + escHtml(h.rank) + '</div>';
-    html += '<div class="print-info-cell"><label>Division:</label>' + escHtml(h.division) + '</div>';
-    html += '<div class="print-info-cell"><label>Month / Year:</label>' + escHtml(h.month) + ' ' + escHtml(h.year) + '</div>';
-    html += '</div>';
-
-    html += '<table class="print-table"><thead><tr>';
-    html += '<th>Date Worked</th><th>Day</th><th>Employer</th><th>Vehicle</th><th>Type</th><th>Start</th><th>End</th><th>Hours</th>';
-    html += '</tr></thead><tbody>';
-
-    (page.entries || []).forEach(entry => {
-      html += '<tr>';
-      html += '<td>' + escHtml(entry.dateWorked) + '</td>';
-      html += '<td>' + escHtml(entry.day) + '</td>';
-      html += '<td>' + escHtml(entry.employer) + '</td>';
-      html += '<td>' + escHtml(entry.vehicle) + '</td>';
-      html += '<td>' + escHtml(entry.type) + '</td>';
-      html += '<td>' + formatTime(entry.start) + '</td>';
-      html += '<td>' + formatTime(entry.end) + '</td>';
-      html += '<td>' + escHtml(entry.hours) + '</td>';
-      html += '</tr>';
-    });
-
-    html += '</tbody></table>';
-    html += '<div class="print-total-row"><span>Page Total:</span><span class="val">' +
-      formatHours(pageTotal(report, page)) + '</span><span>hrs</span></div>';
-
-    html += '<div class="print-sigs">';
-    html += '<div class="print-sig-block"><label>Officer Signature</label>';
-    if (page.sigOfficer && page.sigOfficer.length > 10) {
-      html += '<img src="' + escHtml(page.sigOfficer) + '" alt="Officer signature">';
-    } else {
-      html += '<div class="not-signed">(Not signed)</div>';
-    }
-    html += '</div>';
-    html += '</div>';
-
-    html += '</div>'; // .print-sheet
-  });
-
-  // Grand total line appended as a final summary sheet
-  html += '<div class="print-sheet" style="text-align:center;">';
-  html += '<div style="font-size:14px;font-weight:700;color:var(--accent);padding:12px;">';
-  html += 'Grand Total (all pages): ' + formatHours(report.totalHours) + ' hours';
-  html += '</div></div>';
-
-  container.innerHTML = html;
-}
-
 // Sum hours for entries belonging to a given page
 function pageTotal(report, page) {
   let total = 0;
@@ -914,14 +850,119 @@ function pageTotal(report, page) {
   return total;
 }
 
+// Build a self-contained print document. Opening the report in its own
+// window and printing that window is the reliable cross-platform approach
+// (iOS Safari ignores window.print() when called on the current page from
+// inside a modal). Reuses the same compact print styling as index.html.
+function buildPrintHtml(report) {
+  const h = report.header;
+  const base = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+  const badge = base + 'badge.png';
+  const patch = base + 'patch.png';
+
+  let sheets = '';
+
+  // Each page becomes its own "sheet" in the print output
+  (report.pages || []).forEach(page => {
+    let rows = '';
+    (page.entries || []).forEach(entry => {
+      rows += '<tr>'
+        + '<td>' + escHtml(entry.dateWorked) + '</td>'
+        + '<td>' + escHtml(entry.day) + '</td>'
+        + '<td>' + escHtml(entry.employer) + '</td>'
+        + '<td>' + escHtml(entry.vehicle) + '</td>'
+        + '<td>' + escHtml(entry.type) + '</td>'
+        + '<td>' + formatTime(entry.start) + '</td>'
+        + '<td>' + formatTime(entry.end) + '</td>'
+        + '<td>' + escHtml(entry.hours) + '</td>'
+        + '</tr>';
+    });
+
+    const sig = (page.sigOfficer && page.sigOfficer.length > 10)
+      ? '<img src="' + escHtml(page.sigOfficer) + '" alt="Officer signature">'
+      : '<div class="not-signed">(Not signed)</div>';
+
+    sheets +=
+      '<div class="print-sheet">'
+        + '<div class="print-sheet-header">'
+          + '<img class="print-logo-badge" src="' + badge + '" alt="">'
+          + '<h1>PAPD - Off-Duty Employment Report</h1>'
+          + '<img class="print-logo-patch" src="' + patch + '" alt="">'
+        + '</div>'
+        + '<div class="print-info-grid">'
+          + '<div class="print-info-cell"><label>Officer:</label>' + escHtml(h.officer) + '</div>'
+          + '<div class="print-info-cell"><label>Rank:</label>' + escHtml(h.rank) + '</div>'
+          + '<div class="print-info-cell"><label>Division:</label>' + escHtml(h.division) + '</div>'
+          + '<div class="print-info-cell"><label>Month / Year:</label>' + escHtml(h.month) + ' ' + escHtml(h.year) + '</div>'
+        + '</div>'
+        + '<table class="print-table"><thead><tr>'
+          + '<th>Date Worked</th><th>Day</th><th>Employer</th><th>Vehicle</th><th>Type</th><th>Start</th><th>End</th><th>Hours</th>'
+        + '</tr></thead><tbody>' + rows + '</tbody></table>'
+        + '<div class="print-total-row"><span>Page Total:</span><span class="val">'
+          + formatHours(pageTotal(report, page)) + '</span><span>hrs</span></div>'
+        + '<div class="print-sigs"><div class="print-sig-block"><label>Officer Signature</label>'
+          + sig + '</div></div>'
+      + '</div>';
+  });
+
+  // Grand total line appended as a final summary sheet
+  sheets += '<div class="print-sheet" style="text-align:center;">'
+    + '<div style="font-size:14px;font-weight:700;color:#1e3a5f;padding:12px;">'
+    + 'Grand Total (all pages): ' + formatHours(report.totalHours) + ' hours'
+    + '</div></div>';
+
+  const css = [
+    '@page{size:letter;margin:0.3in;}',
+    'body{font-family:"Helvetica Neue",Arial,sans-serif;color:#1a1d21;background:#fff;margin:0;}',
+    '.print-sheet{max-width:900px;margin:0 auto 28px;background:#fff;border:1px solid #d7dce3;border-radius:10px;padding:36px 40px 28px;page-break-inside:avoid;}',
+    '.print-sheet-header{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 20px;}',
+    '.print-logo-badge{height:90px;max-width:90px;width:auto;}',
+    '.print-logo-patch{height:72px;max-width:72px;width:auto;}',
+    '.print-sheet h1{flex:1;text-align:center;font-size:15px;letter-spacing:.01em;margin:0;}',
+    '.print-info-grid{display:grid;grid-template-columns:1fr 1fr;border:1px solid #b9c2cf;border-radius:6px;overflow:hidden;margin-bottom:8px;}',
+    '.print-info-cell{border-bottom:1px solid #b9c2cf;padding:4px 8px;font-size:11px;}',
+    '.print-info-cell:nth-child(odd){border-right:1px solid #b9c2cf;}',
+    '.print-info-cell:nth-last-child(-n+2){border-bottom:none;}',
+    '.print-info-cell label{font-size:10px;color:#6b7480;margin-right:6px;}',
+    '.print-table{width:100%;border-collapse:collapse;margin-bottom:4px;}',
+    '.print-table thead th{background:#eef2f7;border:1px solid #b9c2cf;padding:4px 6px;font-size:9px;text-transform:uppercase;letter-spacing:.03em;color:#1e3a5f;font-weight:700;text-align:left;-webkit-print-color-adjust:exact;print-color-adjust:exact;}',
+    '.print-table tbody td{border:1px solid #d7dce3;padding:2px 5px;font-size:10px;}',
+    '.print-total-row{display:flex;justify-content:flex-end;align-items:center;gap:10px;border:1px solid #b9c2cf;border-top:none;padding:4px 8px;font-size:11px;font-weight:700;background:#eef2f7;-webkit-print-color-adjust:exact;print-color-adjust:exact;}',
+    '.print-sigs{display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px;}',
+    '.print-sig-block{border:1px solid #b9c2cf;border-radius:6px;padding:6px 8px;}',
+    '.print-sig-block label{font-size:9px;color:#6b7480;text-transform:uppercase;letter-spacing:.03em;display:block;margin-bottom:4px;}',
+    '.print-sig-block img{max-width:100%;height:auto;max-height:44px;display:block;}',
+    '.print-sig-block .not-signed{font-size:11px;color:#6b7480;font-style:italic;padding:8px 0;}'
+  ].join('\n');
+
+  return '<!DOCTYPE html><html><head><meta charset="utf-8">'
+    + '<title>PAPD Report - ' + escHtml(h.officer) + '</title>'
+    + '<style>' + css + '</style></head><body>' + sheets + '</body></html>';
+}
+
 function exportDetail() {
   if (!currentDetailReport) {
     alert('No report loaded to export.');
     return;
   }
-  buildPrintView(currentDetailReport);
-  // Add a body class so only the print container is visible when printing
-  window.print();
+  // Open the report in its own window and print there (works on iOS).
+  const win = window.open('', '_blank');
+  if (!win) {
+    alert('Please allow pop-ups so the report can be exported.');
+    return;
+  }
+  win.document.write(buildPrintHtml(currentDetailReport));
+  win.document.close();
+
+  let printed = false;
+  function doPrint() {
+    if (printed) return;
+    printed = true;
+    try { win.focus(); win.print(); } catch (e) { /* ignore */ }
+  }
+  // Wait for images (logos + signatures) to load, then print.
+  win.onload = function () { setTimeout(doPrint, 300); };
+  setTimeout(doPrint, 1500); // safety fallback
 }
 async function deleteReport(reportId) {
   const confirmed = confirm('Delete this report?\n\nThis will permanently remove all of its entries from the Google Sheet. This action cannot be undone.');
